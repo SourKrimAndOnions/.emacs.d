@@ -1,0 +1,1818 @@
+#+TITLE: Emacs Configuration
+#+PROPERTY: header-args:emacs-lisp :tangle ~/.emacs.d/init.el
+* My Emacs Configuration
+this is my attempt at a homebrewed emacs configuration taking what i've
+learned from using doom emacs exclusively for two years of
+proffesional work
+** performance
+ 
+#+begin_src emacs-lisp
+    ;; -*- lexical-binding: t; -*-
+  (gcmh-mode 1)
+    ;; The default is 800 kilobytes.  Measured in bytes.
+    ;; Profile emacs startup
+    (add-hook 'emacs-startup-hook
+  	    (lambda ()
+  	      (message "*** Emacs loaded in %s seconds with %d garbage collections."
+  		       (emacs-init-time "%.2f")
+  		       gcs-done)))
+ 
+#+end_src
+ 
+#+RESULTS:
+| (lambda nil (message *** Emacs loaded in %s seconds with %d garbage collections. (emacs-init-time %.2f) gcs-done)) | #[0 \301!\210eb\210\302 \210\303\304!\207 [dashboard-buffer-name switch-to-buffer redisplay run-hooks dashboard-after-initialize-hook] 2] | (closure (t) nil (message *** Emacs loaded in %s seconds with %d garbage collections. (emacs-init-time %.2f) gcs-done)) |
+ 
+ 
+** Native compilation
+ 
+#+begin_src emacs-lisp
+ 
+  ;; Silence compiler warnings as they can be pretty disruptive
+  (setq native-comp-async-report-warnings-errors nil)
+ 
+  ;; Set the right directory to store the native comp cache
+  (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
+ 
+#+end_src
+ 
+#+RESULTS:
+| /home/karim/.cache/emacs/eln-cache/ | /home/karim/.emacs.d/eln-cache/ | /home/karim/.guix-profile/lib/emacs/native-site-lisp | /gnu/store/3bsvi1gvbacnpbxrv6v1334d2d256766-emacs-29.3/lib/emacs/29.3/native-lisp/ |
+** Adding sources for packages
+#+begin_src emacs-lisp
+  (require 'package)
+  (setq package-archives
+          '(("gnu" . "https://elpa.gnu.org/packages/")
+            ("melpa" . "https://melpa.org/packages/")
+            ("org" . "https://orgmode.org/elpa/")))
+  (setq use-package-always-ensure t)
+      ;; Comment/uncomment this line to enable MELPA Stable if desired.  See `package-archive-priorities`
+      ;; and `package-pinned-packages`. Most users will not need or want to do this.
+      ;;(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+  (package-initialize)
+#+end_src 
+ 
+#+RESULTS:
+ 
+ 
+** Package Management
+Using Guix for Emacs package management, complemented by straight.el
+for packages not available in Guix.
+ 
+#+begin_src emacs-lisp
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+	 (expand-file-name
+	  "straight/repos/straight.el/bootstrap.el"
+	  (or (bound-and-true-p straight-base-dir)
+	      user-emacs-directory)))
+	(bootstrap-version 7))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+	  (url-retrieve-synchronously
+	   "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+	   'silent 'inhibit-cookies)
+	(goto-char (point-max))
+	(eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+    (straight-use-package 'use-package)
+#+end_src
+
+#+RESULTS:
+: t
+ 
+Use `straight-remove-unused-repos` to clean up unused repositories.
+ 
+** Streamlined Configuration with setup.el
+I've recently switched to the excellent [[https://www.emacswiki.org/emacs/SetupEl][setup.el]] by [[https://ruzkuku.com][pkal]] as an
+alternative to =use-package=.
+ 
+#+begin_src emacs-lisp
+ 
+  (straight-use-package '(setup :type git :host nil :repo "https://git.sr.ht/~pkal/setup"))
+  (require 'setup)
+ 
+  ;; Uncomment this for debugging purposes
+  ;; (defun dw/log-require (&rest args)
+  ;;   (with-current-buffer (get-buffer-create "*require-log*")
+  ;;     (insert (format "%s\n"
+  ;;                     (file-name-nondirectory (car args))))))
+  ;; (add-to-list 'after-load-functions #'dw/log-require)
+ 
+#+end_src
+
+#+RESULTS:
+: setup
+ 
+** doom code
+#+begin_src emacs-lisp
+  (defmacro cmds! (&rest branches)
+  "Returns a dispatcher that runs the a command in BRANCHES.
+Meant to be used as a target for keybinds (e.g. with `define-key' or `map!').
+ 
+BRANCHES is a flat list of CONDITION COMMAND pairs. CONDITION is a lisp form
+that is evaluated when (and each time) the dispatcher is invoked. If it returns
+non-nil, COMMAND is invoked, otherwise it falls through to the next pair.
+ 
+The last element of BRANCHES can be a COMMANd with no CONDITION. This acts as
+the fallback if all other conditions fail.
+ 
+Otherwise, Emacs will fall through the keybind and search the next keymap for a
+keybind (as if this keybind never existed).
+ 
+See `general-key-dispatch' for what other arguments it accepts in BRANCHES."
+  (declare (doc-string 1))
+  (let ((docstring (if (stringp (car branches)) (pop branches) ""))
+        fallback)
+    (when (cl-oddp (length branches))
+      (setq fallback (car (last branches))
+            branches (butlast branches)))
+    (let ((defs (cl-loop for (key value) on branches by 'cddr
+                         unless (keywordp key)
+                         collect (list key value))))
+      `'(menu-item
+         ,(or docstring "") nil
+         :filter (lambda (&optional _)
+                   (let (it)
+                     (cond ,@(mapcar (lambda (pred-def)
+                                       `((setq it ,(car pred-def))
+                                         ,(cadr pred-def)))
+                                     defs)
+                           (t ,fallback))))))))
+ 
+#+end_src
+ 
+#+RESULTS:
+: cmds!
+ 
+** Custom Keywords for setup.el
+*** :pkg
+ 
+The =:pkg= keyword will depend on Guix-installed Emacs packages unless
+the parameter seems like a =straight.el= recipe (it's a list).
+ 
+#+begin_src emacs-lisp
+ 
+  ;; Recipe is always a list
+  ;; Install via Guix if length == 1 or :guix t is present
+ 
+  (defvar dw/guix-emacs-packages '()
+    "Contains a list of all Emacs package names that must be
+  installed via Guix.")
+ 
+  ;; Examples:
+  ;; - (org-roam :straight t)
+  ;; - (git-gutter :straight git-gutter-fringe)
+ 
+  (defun dw/filter-straight-recipe (recipe)
+    (let* ((plist (cdr recipe))
+           (name (plist-get plist :straight)))
+      (cons (if (and name (not (equal name t)))
+                name
+              (car recipe))
+            (plist-put plist :straight nil))))
+ 
+  (setup-define :pkg
+    (lambda (&rest recipe)
+      (if (and t
+               (or (eq (length recipe) 1)
+                   (plist-get (cdr recipe) :guix)))
+          `(add-to-list 'dw/guix-emacs-packages
+                        ,(or (plist-get recipe :guix)
+                             (concat "emacs-" (symbol-name (car recipe)))))
+        `(straight-use-package ',(dw/filter-straight-recipe recipe))))
+    :documentation "Install RECIPE via Guix or straight.el"
+    :shorthand #'cadr)
+ 
+#+end_src
+
+#+RESULTS:
+| &rest | sexp |
+ 
+*** :delay
+ 
+Delay the loading of a package until a certain amount of idle time has passed.
+ 
+#+begin_src emacs-lisp
+ 
+  (setup-define :delay
+     (lambda (&rest time)
+       `(run-with-idle-timer ,(or time 1)
+                             nil ;; Don't repeat
+                             (lambda () (require ',(setup-get 'feature)))))
+     :documentation "Delay loading the feature until a certain amount of idle time has passed.")
+ 
+#+end_src
+
+#+RESULTS:
+| &rest | sexp |
+ 
+*** :disabled
+ 
+Used to disable a package configuration, similar to =:disabled= in =use-package=.
+ 
+#+begin_src emacs-lisp
+ 
+  (setup-define :disabled
+    (lambda ()
+      `,(setup-quit))
+    :documentation "Always stop evaluating the body.")
+ 
+#+end_src
+
+#+RESULTS:
+| &rest | sexp |
+ 
+*** :load-after
+ 
+This keyword causes a body to be executed after other packages/features are loaded:
+ 
+#+begin_src emacs-lisp
+ 
+  (setup-define :load-after
+      (lambda (features &rest body)
+        (let ((body `(progn
+                       (require ',(setup-get 'feature))
+                       ,@body)))
+          (dolist (feature (if (listp features)
+                               (nreverse features)
+                             (list features)))
+            (setq body `(with-eval-after-load ',feature ,body)))
+          body))
+    :documentation "Load the current feature after FEATURES."
+    :indent 1)
+ 
+#+end_src
+
+#+RESULTS:
+| &rest | sexp |
+ 
+Transitioning to setup.el for a more streamlined configuration.
+ 
+#+begin_src emacs-lisp
+(straight-use-package '(setup :type git :host nil :repo "https://git.sr.ht/~pkal/setup"))
+(require 'setup)
+;; Uncomment the following for debugging
+;; (defun dw/log-require (&rest args)
+;;   (with-current-buffer (get-buffer-create "*require-log*")
+;;     (insert (format "%s\n" (file-name-nondirectory (car args))))))
+;; (add-to-list 'after-load-functions #'dw/log-require)
+#+end_src
+
+#+RESULTS:
+: setup
+ 
+ 
+Defining custom keywords like :pkg, :delay, :disabled, and :load-after for tailored package management and loading.
+ 
+#+begin_src emacs-lisp
+;; Definitions for :pkg, :delay, :disabled, and :load-after go here
+#+end_src
+
+#+RESULTS:
+ 
+** allow themes and babel blocks
+#+begin_src emacs-lisp
+  (setq custom-safe-themes t)
+  (setq org-confirm-babel-evaluate nil)
+  (setq org-return-follow-link t)
+#+end_src
+ 
+#+RESULTS:
+: t
+ 
+** org babel
+#+begin_src emacs-lisp :noweb yes
+  (setup (:pkg org :straight t))
+  <<babel-packages>>
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   (quote (
+  	     (shell . t)
+           (python . t)
+           (ditaa . t)
+           (gnuplot . t)
+           (fsharp . t)
+           (restclient . t)
+  	     (powershell . t)
+           (http . t))))
+
+
+#+end_src
+ 
+#+RESULTS:
+ 
+#+name:babel-packages
+#+begin_src emacs-lisp 
+  (setup (:pkg ob-powershell :host github :repo "rkiggen/ob-powershell"))
+  (setup (:pkg ob-fsharp :straigth t))
+  (setup (:pkg ob-restclient :straigth t))
+  (use-package ob-http)
+  ;; (setup (:pkg ob-async :straight t))
+  (require 'ob-powershell)
+  (require 'ob-fsharp)
+  ;; (require 'ob-async)
+#+end_src
+
+#+RESULTS: babel-packages
+: ob-fsharp
+ 
+#+begin_src sh
+  sleep 3 && echo "Hello World"
+#+end_src
+
+#+RESULTS:
+: Hello World
+ 
+** formatting
+#+begin_src emacs-lisp
+    (setq-default indent-tabs-mode nil)
+    (setq-default tab-width 4)  ; Set width for tabs
+    (setq-default require-final-newline nil)
+    (setq-default mode-require-final-newline nil)
+    (setq c-require-final-newline '((c-mode . nil) (c++-mode . nil) (objc-mode . nil)))
+    (setq-default buffer-file-coding-system 'utf-8-unix)
+  (global-auto-revert-mode 1)
+  (tool-bar-mode -1)
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  (set-face-attribute 'default nil :font "Fira Code-16")
+ 
+    (setq-default major-mode
+                  (lambda () ; guess major mode from file name
+                    (unless buffer-file-name
+                      (let ((buffer-file-name (buffer-name)))
+                        (set-auto-mode)))))
+ 
+    (setq confirm-kill-emacs #'yes-or-no-p)
+    (setq window-resize-pixelwise t)
+    (setq frame-resize-pixelwise t)
+    (save-place-mode t)
+    (savehist-mode t)
+    (recentf-mode t)
+  (defalias 'yes-or-no-p 'y-or-n-p)
+  (global-set-key (kbd "C-c l") #'org-store-link)
+ 
+ 
+(setq compilation-ask-about-save nil)
+#+end_src
+ 
+#+RESULTS:
+ 
+* Finans
+#+begin_src emacs-lisp
+          (use-package ledger-mode
+             :mode ("\\.dat\\'"
+                    "\\.ledger\\'")
+             :custom (ledger-clear-whole-transactions t))
+                
+           (use-package flycheck-ledger :after ledger-mode)
+
+          (require 'transient)
+
+        (defvar ledger-file "/home/karim/Dropbox/ledger/ledger.dat"
+          "Path to your main Ledger file.")
+
+        (require 'transient)
+        (require 'ledger-report)
+
+        (defun ledger-custom-report (name command)
+          "Run a custom Ledger report with NAME and COMMAND."
+          (let ((report-name (format "Custom: %s" name)))
+            (add-to-list 'ledger-reports `(,report-name ,command) t)
+            (ledger-report report-name nil)
+            (delete-other-windows)))
+
+        (transient-define-prefix ledger-reports-transient ()
+          "Transient for running Ledger reports."
+          :transient-suffix 'transient--do-stay
+          ["Ledger Reports"
+           ("n" "Net Worth" (lambda () (interactive) 
+                              (ledger-custom-report "Net Worth" "%(binary) -f %(ledger-file) balance ^Assets ^Liabilities ^Equity and not %Equity:Budget -R")))
+           ("i" "Income Statement" (lambda () (interactive) 
+                                     (ledger-custom-report "Income Statement" "%(binary) -f %(ledger-file) balance ^Income ^Expenses -R")))
+           ("r" "Retained Earnings" (lambda () (interactive) 
+                                      (ledger-custom-report "Retained Earnings" "%(binary) -f %(ledger-file) balance ^Income ^Expenses -R --sum")))
+           ("b" "Budget Status" (lambda () (interactive) 
+                                  (ledger-custom-report "Budget Status" "%(binary) -f %(ledger-file) balance ^Budget")))
+           ("a" "All Accounts" (lambda () (interactive) 
+                               (ledger-custom-report "All Accounts" "%(binary) -f %(ledger-file) balance ^Assets")))
+           ("e" "Expenses" (lambda () (interactive) 
+                             (ledger-custom-report "Expenses" "%(binary) -f %(ledger-file) balance ^Expenses -R")))
+           ("m" "Monthly Expenses" (lambda () (interactive) 
+                                     (ledger-custom-report "Monthly Expenses" "%(binary) -f %(ledger-file) --monthly balance ^Expenses -R")))])
+
+        (global-set-key (kbd "C-c l") #'ledger-reports-transient)
+
+  (ledger-reports-add "Cash Flow" "ledger -f %(ledger-file) -p %(month) register ^Assets:Checking")
+  (ledger-reports-add "Budget vs. Actual" "ledger -f %(ledger-file) -p %(month) --budget --depth 2 balance ^Expenses")
+#+end_src
+
+#+RESULTS:
+: ledger-reports-transient
+
+* Behaviour
+#+begin_src emacs-lisp
+  (setq-default abbrev-mode t)
+#+end_src
+
+* packages
+
+** Keep .emacs.d Clean
+Ensuring a clean .emacs.d directory by relocating transient files.
+I don't want a bunch of transient files showing up as untracked in the Git repo so I move them all to another location.
+ 
+#+begin_src emacs-lisp
+ 
+  ;; Change the user-emacs-directory to keep unwanted things out of ~/.emacs.d
+  (setq user-emacs-directory (expand-file-name "~/.cache/emacs/")
+        url-history-file (expand-file-name "url/history" user-emacs-directory))
+ 
+  ;; Use no-littering to automatically set common paths to the new user-emacs-directory
+  (setup (:pkg no-littering)
+    (require 'no-littering))
+ 
+  ;; Keep customization settings in a temporary file (thanks Ambrevar!)
+  (setq custom-file
+        (if (boundp 'server-socket-dir)
+            (expand-file-name "custom.el" server-socket-dir)
+          (expand-file-name (format "emacs-custom-%s.el" (user-uid)) temporary-file-directory)))
+  (load custom-file t)
+ 
+  (setq auto-save-file-name-transforms
+      `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
+ 
+  (setq lock-file-name-transforms
+      `((".*" ,(concat user-emacs-directory "lock-files/") t)))
+  (setq make-backup-files nil)
+  (setq vc-make-backup-files nil)
+#+end_src
+ 
+#+RESULTS:
+ 
+*Guix Packages*
+Listing Emacs packages managed by Guix.
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-no-littering"
+#+end_src
+ 
+** Update Load Path
+
+I've got a folder of custom Emacs Lisp libraries which must be added to the load path.
+ 
+#+begin_src emacs-lisp
+ 
+  ;; Add my library path to load-path
+  (push "~/kremacs/lisp" load-path)
+#+end_src
+ 
+** Diminish
+ 
+#+begin_src emacs-lisp
+(setup (:pkg diminish))
+#+end_src
+ 
+*Guix packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-diminish"
+#+end_src
+ 
+** Dashboard
+#+begin_src emacs-lisp
+      (require 'dashboard)
+  (require 'all-the-icons)
+      (dashboard-setup-startup-hook)
+      ;; Set the title
+    ;; (setq dashboard-banner-logo-title "Welcome to Emacs Dashboard")
+    ;; Set the banner
+  (setq dashboard-startup-banner 'logo)
+  (setq dashboard-set-heading-icons t)
+  #+end_src
+ 
+#+RESULTS:
+: t
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-dashboard"
+#+end_src
+** Keybinding Panel (which-key)
+ 
+[[https://github.com/justbur/emacs-which-key][which-key]] is great for getting an overview of what keybindings are available
+based on the prefix keys you entered.  Learned about this one from Spacemacs.
+ 
+#+begin_src emacs-lisp
+  (setup (:pkg which-key)
+    (diminish 'which-key-mode)
+    (which-key-mode)
+    (setq which-key-idle-delay 0.3))
+#+end_src
+ 
+*Guix Packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-which-key"
+#+end_src
+** Meow
+#+begin_src emacs-lisp
+  ;;   (require 'god-mode)
+  ;; (god-mode-all)
+  ;; (global-set-key (kbd "<escape>") #'god-local-mode)
+  ;;
+  (defun meow-setup ()
+    (setq meow-cheatsheet-layout meow-cheatsheet-layout-colemak-dh)
+    (meow-motion-overwrite-define-key
+     ;; Use e to move up, n to move down.
+     '("<escape>" . ignore))
+    (meow-leader-define-key
+     '("?" . meow-cheatsheet)
+     ;; To execute the originally e in MOTION state, use SPC e.
+     '("e" . "H-e")
+     '("1" . meow-digit-argument)
+     '("2" . meow-digit-argument)
+     '("3" . meow-digit-argument)
+     '("4" . meow-digit-argument)
+     '("5" . meow-digit-argument)
+     '("6" . meow-digit-argument)
+     '("7" . meow-digit-argument)
+     '("8" . meow-digit-argument)
+     '("9" . meow-digit-argument)
+     '("0" . meow-digit-argument))
+    (meow-normal-define-key
+     '("0" . meow-expand-0)
+     '("1" . meow-expand-1)
+     '("2" . meow-expand-2)
+     '("3" . meow-expand-3)
+     '("4" . meow-expand-4)
+     '("5" . meow-expand-5)
+     '("6" . meow-expand-6)
+     '("7" . meow-expand-7)
+     '("8" . meow-expand-8)
+     '("9" . meow-expand-9)
+     '("-" . negative-argument)
+     '(";" . meow-reverse)
+     '("," . meow-inner-of-thing)
+     '("." . meow-bounds-of-thing)
+     '("[" . meow-beginning-of-thing)
+     '("]" . meow-end-of-thing)
+     '("/" . meow-visit)
+     '("a" . meow-append)
+     '("A" . meow-open-below)
+     '("b" . meow-back-word)
+     '("B" . meow-back-symbol)
+     '("c" . meow-change)
+     '("d" . meow-delete)
+     '("e" . meow-prev)
+     '("E" . meow-prev-expand)
+     '("f" . meow-find)
+     '("g" . meow-cancel-selection)
+     '("G" . meow-grab)
+     '("h" . meow-left)
+     '("H" . meow-left-expand)
+     '("i" . meow-right)
+     '("I" . meow-right-expand)
+     '("j" . meow-join)
+     '("k" . meow-kill)
+     '("l" . meow-line)
+     '("L" . meow-goto-line)
+     '("m" . meow-mark-word)
+     '("M" . meow-mark-symbol)
+     '("n" . meow-next)
+     '("N" . meow-next-expand)
+     '("o" . meow-block)
+     '("O" . meow-to-block)
+     '("p" . meow-yank)
+     '("q" . meow-quit)
+     '("r" . meow-replace)
+     '("s" . meow-insert)
+     '("S" . meow-open-above)
+     '("t" . meow-till)
+     '("u" . meow-undo)
+     '("U" . meow-undo-in-selection)
+     '("v" . meow-search)
+     '("w" . meow-next-word)
+     '("W" . meow-next-symbol)
+     '("x" . meow-delete)
+     '("X" . meow-backward-delete)
+     '("y" . meow-save)
+     '("z" . meow-pop-selection)
+     '("'" . repeat)
+     '("<escape>" . ignore)))
+
+  (require 'meow)
+  (setf meow-expand-hint-remove-delay 10)
+  (meow-setup)
+  (setq meow-use-clipboard t)
+  ;; (meow-global-mode 1)
+#+end_src
+ 
+#+RESULTS:
+: god-local-mode
+ 
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-meow"
+#+end_src
+** Doom-themes
+#+begin_src emacs-lisp
+  (setup (:pkg doom-themes)
+         ;; (load-theme 'doom-city-lights)
+         )
+  ;; (load-theme 'catppuccin)
+  (load-theme 'modus-vivendi)
+#+end_src
+ 
+*Guix packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-doom-themes"
+#+end_src
+ 
+** Doom-modeline
+#+begin_src emacs-lisp
+  (setup (:pkg doom-modeline)
+    (doom-modeline-mode 1)
+    (:option doom-modeline-icon t))
+ 
+#+end_src
+ 
+#+RESULTS:
+: t
+ 
+*Guix packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-doom-modeline"
+#+end_src
+ 
+** Winner-mode
+#+begin_src emacs-lisp
+  (setq winner-mode 1)
+#+end_src
+
+#+RESULTS:
+: 1
+  (global-set-key [remap dabbrev-expand] 'hippie-expand)
+  (use-package nerd-icons
+    :ensure t)
+
+  (use-package nerd-icons-completion
+    :ensure t
+    :after marginalia
+    :config
+    (nerd-icons-completion-marginalia-setup)
+    (nerd-icons-completion-mode 1))
+
+  (use-package nerd-icons-corfu
+    :ensure t
+    :after corfu
+    :config
+    (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+
+** completion
+*** Corfu
+#+begin_src emacs-lisp
+      (setup (:pkg corfu)
+        (:option corfu-auto t)
+        (:option corfu-cycle t)
+        (:option corfu-auto-prefix 2)
+        (setq tab-always-indent 'complete)
+        (global-corfu-mode))
+      ;; No auto-completion or completion-on-quit in eshell
+      (defun crafted-completion-corfu-eshell ()
+        "Special settings for when using corfu with eshell."
+        (setq-local corfu-quit-at-boundary t 
+                    corfu-quit-no-match t
+                    corfu-auto nil)
+        (corfu-mode 1))
+        (add-hook 'eshell-mode-hook #'crafted-completion-corfu-eshell)
+
+    (defun corfu-send-shell (&rest _)
+    "Send completion candidate when inside comint/eshell."
+    (cond
+     ((and (derived-mode-p 'eshell-mode) (fboundp 'eshell-send-input))
+      (eshell-send-input))
+     ((and (derived-mode-p 'comint-mode)  (fboundp 'comint-send-input))
+      (comint-send-input))))
+
+  (advice-add #'corfu-insert :after #'corfu-send-shell)
+  ;; The advices are only needed on Emacs 28 and older.
+
+  (when (< emacs-major-version 29)
+    ;; Silence the pcomplete capf, no errors or messages!
+    (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
+
+    ;; Ensure that pcomplete does not write to the buffer
+    ;; and behaves as a pure `completion-at-point-function'.
+    (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-purify))
+
+          (defun corfu-enable-always-in-minibuffer ()
+      "Enable Corfu in the minibuffer if Vertico/Mct are not active."
+      (unless (or (bound-and-true-p mct--active)
+                  (bound-and-true-p vertico--input)
+                  (eq (current-local-map) read-passwd-map))
+        ;; (setq-local corfu-auto nil) ;; Enable/disable auto completion
+        (setq-local corfu-echo-delay nil ;; Disable automatic echo and popup
+                    corfu-popupinfo-delay nil)
+        (corfu-mode 1)))
+
+  (add-hook 'minibuffer-setup-hook #'corfu-enable-always-in-minibuffer 1)
+      (require 'dabbrev)
+      (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
+      (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
+      (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
+  (global-set-key [remap dabbrev-expand] 'hippie-expand)
+#+end_src
+
+#+RESULTS:
+: hippie-expand
+
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-corfu"
+  "emacs-corfu-doc"
+  "emacs-kind-icon"
+#+end_src
+** Puni (structural editing - sexp / balanced expressions)
+#+begin_src emacs-lisp
+  ;; Install and configure Puni
+(use-package puni
+  :init
+  ;; Enable puni-mode globally
+  (puni-global-mode)
+  :config
+  ;; Define keybindings similar to Paredit
+  (define-key puni-mode-map (kbd "C-M-f") 'puni-forward-sexp)
+  (define-key puni-mode-map (kbd "C-M-b") 'puni-backward-sexp)
+  (define-key puni-mode-map (kbd "C-M-u") 'backward-up-list)
+  (define-key puni-mode-map (kbd "C-M-d") 'down-list)
+  (define-key puni-mode-map (kbd "C-M-p") 'backward-up-list)
+  (define-key puni-mode-map (kbd "C-M-n") 'up-list)
+  (define-key puni-mode-map (kbd "C-k") 'puni-kill-line)
+  (define-key puni-mode-map (kbd "M-(") 'puni-syntactic-backward-punct)
+  (define-key puni-mode-map (kbd "M-)") 'puni-syntactic-forward-punct)
+  (define-key puni-mode-map (kbd "M-[") 'puni-wrap-square)
+  (define-key puni-mode-map (kbd "M-{") 'puni-wrap-curly)
+  (define-key puni-mode-map (kbd "M-s") 'puni-splice)
+  (define-key puni-mode-map (kbd "M-S") 'puni-split)
+  (define-key puni-mode-map (kbd "M-J") 'puni-join)
+  (define-key puni-mode-map (kbd "M-r") 'puni-raise)
+  (define-key puni-mode-map (kbd "C-)") 'puni-slurp-forward)
+  (define-key puni-mode-map (kbd "C-(") 'puni-slurp-backward)
+  (define-key puni-mode-map (kbd "C->") 'puni-syntactic-forward-punct)
+  (define-key puni-mode-map (kbd "C-<") 'puni-syntactic-backward-punct)
+  (define-key puni-mode-map (kbd "C-}") 'puni-barf-forward)
+  (define-key puni-mode-map (kbd "C-{") 'puni-barf-backward))
+
+;; Optionally, disable Puni in term-mode
+(add-hook 'term-mode-hook #'puni-disable-puni-mode)
+
+#+end_src
+
+#+RESULTS:
+| puni-disable-puni-mode |
+
+*** Cape
+#+begin_src emacs-lisp
+      (setup (:pkg cape))
+
+      ;; Add useful defaults completion sources from cape
+      (add-to-list 'completion-at-point-functions #'cape-file)
+      (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+      ;; Silence the pcomplete capf, no errors or messages!
+      ;; Important for corfu
+      (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-silent)
+
+      ;; Ensure that pcomplete does not write to the buffer
+      ;; and behaves as a pure `completion-at-point-function'.
+      (advice-add 'pcomplete-completions-at-point :around #'cape-wrap-purify)
+
+    (use-package yasnippet-capf
+      :after cape
+      :config
+      (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+  (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
+  (setq hippie-expand-try-functions-list
+        (cons 'yas-hippie-try-expand
+              (delq 'yas-hippie-try-expand hippie-expand-try-functions-list)))
+
+#+end_src
+
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-cape"
+#+end_src
+
+*** Language Server Support
+
+#+begin_src emacs-lisp
+(use-package eglot)
+          ;; (setup (:pkg eglot :straight t))
+          ;; (with-eval-after-load 'eglot
+          ;;   (add-to-list 'eglot-server-programs 
+          ;;                `(csharp-mode . ("/home/karim/doom-emacs/.local/etc/lsp/omnisharp-roslyn/latest/OmniSharp" "-lsp"))))
+        ;;   (require 'eglot)
+        ;;   (add-hook 'csharp-mode-hook 'eglot-ensure)
+        ;;   ;; ... and so on for other code-related commands
+        ;; (add-hook 'eglot-managed-mode-hook (lambda () (eglot-inlay-hints-mode -1)))
+          ;; Basic eglot setup
+          (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
+    ;;      (setq eglot-sync-connect 1
+      ;;          eglot-autoshutdown t
+        ;;        eglot-send-changes-idle-time 0.5
+          ;;      eglot-auto-display-help-buffer nil)
+
+      (setq-default eglot-inlay-hints-mode nil)
+
+      (defun reopen-file-to-reset-eglot ()
+        "Closes and reopens the current file to reset Eglot's document version if in C# mode,
+         preserving cursor and window position."
+        (when (eq major-mode 'csharp-mode)
+          (let ((file-path (buffer-file-name))
+                (pos (point))  ; Save current cursor position
+                (window-start (window-start)))  ; Save the window's starting position
+            (when file-path
+              (kill-buffer (current-buffer))  ; Close current buffer
+              (find-file file-path)           ; Reopen file
+              (goto-char pos)                 ; Restore cursor position
+              (set-window-start nil window-start)))))  ; Restore window scroll position  ; Restore cursor position
+
+  (defun reopen-file-to-reset-eglot ()
+    )
+
+  (add-hook 'eglot-managed-mode-hook (lambda () (eglot-inlay-hints-mode -1)))
+
+
+  ;; Define the optimization mode
+  (defvar +lsp-defer-shutdown 3
+    "If non-nil, defer shutdown of LSP servers for this many seconds after last
+            workspace buffer is closed.
+
+            This delay prevents premature server shutdown when a user still intends on
+            working on that project after closing the last buffer, or when programmatically
+            killing and opening many LSP/eglot-powered buffers.")
+
+
+  ;;
+            ;;; Common
+
+  (defvar +lsp--default-read-process-output-max nil)
+  (defvar +lsp--default-gcmh-high-cons-threshold nil)
+  (defvar +lsp--optimization-init-p nil)
+
+  (define-minor-mode +lsp-optimization-mode
+    "Deploys universal GC and IPC optimizations for `lsp-mode' and `eglot'."
+    :global t
+    :init-value nil
+    (if (not +lsp-optimization-mode)
+        (setq-default read-process-output-max +lsp--default-read-process-output-max
+                      gcmh-high-cons-threshold +lsp--default-gcmh-high-cons-threshold
+                      +lsp--optimization-init-p nil)
+      ;; Only apply these settings once!
+      (unless +lsp--optimization-init-p
+        (setq +lsp--default-read-process-output-max (default-value 'read-process-output-max)
+              +lsp--default-gcmh-high-cons-threshold (default-value 'gcmh-high-cons-threshold))
+        (setq-default read-process-output-max (* 1024 1024))
+        ;; REVIEW LSP causes a lot of allocations, with or without the native JSON
+        ;;        library, so we up the GC threshold to stave off GC-induced
+        ;;        slowdowns/freezes. Doom uses `gcmh' to enforce its GC strategy,
+        ;;        so we modify its variables rather than `gc-cons-threshold'
+        ;;        directly.
+        (setq-default gcmh-high-cons-threshold (* 2 +lsp--default-gcmh-high-cons-threshold))
+        (gcmh-set-high-threshold)
+        (setq +lsp--optimization-init-p t))))
+  ;; Apply optimizations when eglot is started
+  (add-hook 'eglot-managed-mode-hook '+lsp-optimization-mode)
+
+  ;; Function to enable +lsp-optimization-mode
+  (defun enable-+lsp-optimization-mode ()
+    "Enable +lsp-optimization-mode."
+    (if (fboundp '+lsp-optimization-mode)
+        (+lsp-optimization-mode 1)))
+
+  ;; Advice to enable +lsp-optimization-mode when lsp-mode starts
+  (advice-add 'lsp :after #'enable-+lsp-optimization-mode)
+  (advice-add 'lsp-deferred :after #'enable-+lsp-optimization-mode)
+#+end_src
+ 
+#+RESULTS:
+ 
+*Guix Packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+#+end_src
+*** Tree-sitter
+*** Templating (TempEL, Yasnippet)
+ 
+#+begin_src emacs-lisp
+  ;;         (setup (:pkg tempel)
+  ;;           )
+  ;;         (setup (:pkg tempel-collection :load-after tempel))
+  ;;     ;; (:option tempel-trigger-prefix ">")
+  ;;       (defun tempel-setup-capf ()
+  ;;           ;; Add the Tempel Capf to `completion-at-point-functions'.
+  ;;           ;; `tempel-expand' only triggers on exact matches. Alternatively use
+  ;;           ;; `tempel-complete' if you want to see all matches, but then you
+  ;;           ;; should also configure `tempel-trigger-prefix', such that Tempel
+  ;;           ;; does not trigger too often when you don't expect it. NOTE: We add
+  ;;           ;; `tempel-expand' *before* the main programming mode Capf, such
+  ;;           ;; that it will be tried first.
+  ;;           (setq-local completion-at-point-functions
+  ;;                       (cons #'tempel-complete
+  ;;                             completion-at-point-functions)))
+ 
+  ;; (with-eval-after-load 'tempel
+  ;;      ;; Ensure tempel-path is a list -- it may also be a string.
+  ;;      (unless (listp 'tempel-path)
+  ;;        (setq tempel-path (list tempel-path)))
+  ;;      (add-to-list 'tempel-path "~/src/guix/etc/snippets/tempel/*"))
+ 
+  ;;       (add-to-list 'completion-at-point-functions 'tempel-setup-capf)
+  ;;         (add-hook 'conf-mode-hook 'tempel-setup-capf)
+  ;;         (add-hook 'prog-mode-hook 'tempel-setup-capf)
+  ;;         (add-hook 'text-mode-hook 'tempel-setup-capf)
+ 
+#+end_src
+ 
+ 
+#+begin_src emacs-lisp
+  (setup (:pkg yasnippet))
+  (require 'yasnippet)
+  (yas-global-mode 1)
+#+end_src
+#+RESULTS:
+| emacs-yasnippet | emacs-wgrep | emacs-paredit | emacs-sly | emacs-embark | emacs-kind-icon | emacs-all-the-icons-dired | emacs-guix | emacs-editorconfig | emacs-transient | emacs-org-modern | emacs-magit | emacs-orderless | emacs-flycheck | emacs-marginalia | emacs-consult | emacs-eros | emacs-aggressive-indent | emacs-vertico-posframe | emacs-vertico | emacs-tempel | emacs-cape | emacs-corfu | emacs-doom-modeline | emacs-doom-themes | emacs-which-key | emacs-diminish | emacs-no-littering |
+ 
+*Guix packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  ;; "emacs-tempel"
+  ;; "emacs-tempel-collection"
+  ;; "emacs-eglot-tempel"
+"emacs-yasnippet"
+"emacs-auto-yasnippet"
+"emacs-yasnippet-snippets"
+#+end_src
+ 
+ 
+*** Copilot
+ 
+#+RESULTS:
+| flycheck-mode | copilot-mode | tempel-setup-capf | editorconfig-major-mode-hook |
+ 
+** Completions with Vertico
+ 
+#+begin_src emacs-lisp
+    (setup (:pkg vertico)
+      (vertico-mode)
+      (:option vertico-resize nil
+               vertico-count 17
+               vertico-cycle t)
+      (:with-map vertico-map
+        "M-RET" #'vertico-exit-input
+        "C-SPC" #'+vertico/embark-preview
+        "C-n"   #'vertico-next
+        "C-M-j" #'vertico-next-group
+        "C-e"   #'vertico-previous
+        "C-M-k" #'vertico-previous-group
+        (:global "DEL" #'vertico-directory-delete-char)
+        (:with-hook minibuffer-setup-hook
+          (:hook #'vertico-repeat-save))))
+
+  ;;   (setup (:pkg vertico-posframe)
+  ;;     (:load-after vertico)
+  ;;     (vertico-posframe-mode 1))
+
+  ;;   (setq vertico-multiform-commands
+  ;;       '((consult-line
+  ;;          posframe
+  ;;          (vertico-posframe-poshandler . posframe-poshandler-frame-top-center)
+  ;;          (vertico-posframe-border-width . 10)
+  ;;          ;; NOTE: This is useful when emacs is used in both in X and
+  ;;          ;; terminal, for posframe do not work well in terminal, so
+  ;;          ;; vertico-buffer-mode will be used as fallback at the
+  ;;          ;; moment.
+  ;;          (vertico-posframe-fallback-mode . vertico-buffer-mode))
+  ;;         (t posframe)))
+  ;; (vertico-multiform-mode 1)
+
+#+end_src
+ 
+*Guix Packages*
+ 
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-vertico"
+  "emacs-vertico-posframe"
+#+end_src
+** csharp / fsharp
+#+begin_src emacs-lisp
+  (setup (:pkg sharper :host github :repo "sebasmonia/sharper")
+    (require 'sharper))
+
+  (global-set-key (kbd "C-c d") 'sharper-main-transient)
+
+  ;; (defun my-csharp-mode-setup ()
+  ;;   (set-buffer-file-coding-system 'unix))
+
+  ;; (add-hook 'csharp-mode-hook 'my-csharp-mode-setup)
+
+  (require 'web-mode)
+
+  ;; Associate .cshtml files with web-mode
+  (add-to-list 'auto-mode-alist '("\\.cshtml\\'" . web-mode))
+
+  ;; Customize web-mode settings for .cshtml files
+  (defun my-web-mode-hook ()
+    "Hooks for Web mode."
+    ;; Enable indentation
+    (setq web-mode-markup-indent-offset 2)
+    (setq web-mode-code-indent-offset 2)
+    (setq web-mode-css-indent-offset 2))
+
+      ;;Define key remap for lsp-mode
+  (use-package lsp-mode
+    :commands (lsp lsp-deferred)
+    :hook ((csharp-mode . lsp-deferred)
+           ;; (fsharp-mode . lsp-deferred)
+           )
+    :config
+    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+    (setq lsp-prefer-capf t))  ;; Optional: Configure lsp-mode to use completion-at-point-functions
+
+  ;; Configure lsp-consult
+  (use-package consult-lsp
+    :commands consult-lsp-symbols
+    :commands consult-lsp-diagnostics)
+
+  ;; Ensure csharp-mode is installed and required
+  (use-package csharp-mode
+    ;; :mode "\\.cs\\'"
+    :hook (csharp-mode . lsp-deferred))
+
+  ;; Ensure fsharp-mode is  installed and required
+  (use-package fsharp-mode)
+  (add-hook 'web-mode-hook 'my-web-mode-hook)
+  (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
+  (use-package eglot-fsharp)
+
+
+#+end_src
+ 
+#+RESULTS:
+| (lambda nil (+lsp-optimization-mode t)) | +lsp-optimization-mode | (closure (bootstrap-version t) nil (eglot-inlay-hints-mode -1)) | (closure (bootstrap-version t) nil (+lsp-optimization-mode t)) | doom-modeline-override-eglot | doom-modeline-update-eglot |
+ 
+ 
+#+begin_src emacs-lisp
+#+end_src
+** consult
+ 
+#+begin_src emacs-lisp
+        (setup (:pkg consult)
+          (setq consult-project-root-function #'doom-project-root
+            consult-narrow-key "<"
+            consult-line-numbers-widen t
+            consult-async-min-input 2
+            consult-async-refresh-delay  0.15
+            consult-async-input-throttle 0.2
+            consult-async-input-debounce 0.1))
+      (global-unset-key (kbd "C-x C-b"))
+      (global-unset-key (kbd "C-h C-f"))
+      
+  (require 'consult)
+  (consult-customize
+   consult-ripgrep consult-git-grep consult-grep
+   consult-bookmark consult-recent-file consult-xref
+   consult--source-bookmark consult--source-file-register
+   consult--source-recent-file consult--source-project-recent-file
+   ;; my/command-wrapping-consult    ;; disable auto previews inside my command
+   :preview-key '(:debounce 0.4 any)) ;; Option 1: Delay preview
+    (transient-define-prefix my-register-menu ()
+      "Transient for registers."
+      ["Registers"
+       ("s" "Store to Register" consult-register-store)
+       ("r" "View/Register Actions" consult-register)])
+
+#+end_src
+ 
+#+RESULTS:
+| [1 transient-column (:description Registers) ((1 transient-suffix (:key s :description Store to Register :command consult-register-store)) (1 transient-suffix (:key r :description View/Register Actions :command consult-register)))] |
+ 
+*Guix Packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+ 
+  "emacs-consult"
+  "emacs-consult-eglot"
+#+end_src
+ 
+** Occur
+#+begin_src emacs-lisp
+        (setup (:pkg occurx-mode :straight t))
+ 
+#+end_src
+ 
+#+RESULTS:
+| [1 transient-column (:description Registers) ((1 transient-suffix (:key s :description Store to Register :command consult-register-store)) (1 transient-suffix (:key r :description View/Register Actions :command consult-register)))] |
+ 
+*Guix Packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+ 
+#+end_src
+ 
+** marginalia
+#+begin_src emacs-lisp
+  (setup (:pkg marginalia)
+    (marginalia-mode)
+    (:with-map minibuffer-local-map
+     :bind "M-A" #'marginalia-cycle))
+#+end_src
+*Guix Packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-marginalia"
+#+end_src
+ 
+** Projectile
+*** Initial Setup
+ 
+#+begin_src emacs-lisp
+  ;; (setup (:pkg projectile)
+  ;;   (when (file-directory-p "~/source/")
+  ;;     (setq projectile-project-search-path '("~/source/")))
+  ;;   (setq projectile-switch-project-action #'dw/switch-project-action))
+ 
+  ;;   (projectile-mode)
+  (global-unset-key (kbd "C-x C-p"))
+ 
+    #+end_src
+ 
+*Guix Packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+ 
+  "emacs-projectile"
+  "ripgrep" ;; For counsel-projectile-rg
+  "the-silver-searcher" ;; For counsel-projectile-ag
+ 
+#+end_src
+** flycheck
+#+begin_src emacs-lisp
+ 
+  (setup (:pkg flycheck)
+    (:hook-into prog-mode))
+ 
+#+end_src
+ 
+*Guix Packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+ 
+  "emacs-flycheck"
+ 
+#+end_src
+ 
+** Improved Candidate Filtering with Orderless
+ 
+#+begin_src emacs-lisp
+
+  (setup (:pkg orderless)
+    (require 'orderless)
+    (setq completion-styles '(orderless)
+          ;; completion-category-defaults nil
+          completion-category-overrides '((file (styles . (partial-completion))))))
+
+#+end_src
+ 
+*Guix Packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+ 
+  "emacs-orderless"
+ 
+#+end_src
+** Switching Directories with consult-dir
+ 
+#+begin_src emacs-lisp
+  (setup (:pkg consult-dir :straight t))
+#+end_src
+** Version control
+[[https://magit.vc/][Magit]] is one of emacs best features. It's been around forever at it has truly helped me understand the intricasies of git.
+ 
+if this isn't you cup of tea and you're on windows or mac, then I highly recommend [[https://magit.vc/][Fork]]
+#+begin_src emacs-lisp
+      (setup (:pkg magit)
+        (:also-load magit-todos)
+        (:option magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+   
+      (meow-leader-define-key
+       '("v " . my-git-commands))
+      ;; Function to display magit status in a full frame
+      (setq magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1)
+      (setq magit-save-repository-buffers 'dontask)
+   
+  (setq ediff-window-setup-function 'ediff-setup-windows-plain)
+   
+      (transient-define-prefix my-git-commands ()
+        "A transient for common git operations."
+        ["Git Commands"
+         ["Magit"
+          ("g" "Status" magit-status)
+          ("b" "blame" magit-blame-addition)
+          ("C" "Clone" magit-clone)
+          ]
+         ["Timemachine"
+          ("t" "Toggle Timemachine" git-timemachine-toggle)]])
+#+end_src
+ 
+#+RESULTS:
+| [1 transient-columns (:description Git Commands) ([1 transient-column (:description Magit) ((1 transient-suffix (:key s :description Status :command magit-status)) (1 transient-suffix (:key c :description Commit :command magit-commit)) (1 transient-suffix (:key b :description blame :command magit-blame-addition)) (1 transient-suffix (:key b :description Branches :command magit-branch)))] [1 transient-column (:description Timemachine) ((1 transient-suffix (:key t :description Toggle Timemachine :command git-timemachine-toggle)))])] |
+ 
+*Guix Packages*
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-magit"
+  "emacs-diff-hl"
+  "emacs-magit-todos"
+  "emacs-git-timemachine"
+#+end_src
+ 
+** Org modern 
+#+begin_src emacs-lisp
+  (setup (:pkg org-modern))
+  (setq org-modern-table nil)
+   (add-hook 'org-mode-hook 'org-modern-mode)
+   (add-hook 'org-agenda-finalize-hook 'org-modern-agenda)
+#+end_src
+ 
+#+RESULTS:
+| org-modern-agenda | org-agenda-property-add-properties |
+ 
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-org-modern"
+#+end_src
+** Transient keybinds
+keybinding maps like magit
+#+begin_src emacs-lisp
+    (setup (:pkg transient)
+  ;;    (transient-define-prefix my-windmove-transient ()
+    ;;    "Window Movement"
+        ;; [["Move"
+        ;;   ("h" "left" windmove-left)
+        ;;   ("n" "down" windmove-down)
+        ;;   ("i" "right" windmove-right)
+        ;;   ("e" "up" windmove-up)]
+        ;;  ["Split"
+        ;;   ("v" "vert split" (lambda () (interactive) (split-window-right) (windmove-right)))
+        ;;   ("x" "horiz split" (lambda () (interactive) (split-window-below) (windmove-down)))]
+        ;;  ["Resize"
+        ;;   ("<left>" "shrink horiz" shrink-window-horizontally)
+        ;;   ("<right>" "enlarge horiz" enlarge-window-horizontally)
+        ;;   ("<down>" "shrink vert" shrink-window)
+        ;;   ("<up>" "enlarge vert" enlarge-window)]
+        ;;  ["Other"
+        ;;   ("s" "swap" (lambda () (interactive) (call-interactively #'window-swap-states)))
+        ;;   ("d" "delete" delete-window)
+        ;;   ("m" "maximise" delete-other-windows)]]
+        ;; )
+      (transient-define-prefix my-eglot-server-transint ()
+        [["Server"
+          ("r" "Start/Restart" eglot)
+          ("s" "Shutdown" eglot-shutdown)
+          ("S" "Shutdown all" eglot-shutdown)
+          ("c" "Reconnect" eglot-reconnect)
+          ("C" "Clear status" eglot-clear-status)]
+         ["Toggle"
+          ("h" "inline-hints" eglot-inlay-hints-mode)]])
+      (transient-define-prefix my-code-transient ()
+        "Window Movement"
+        [["Actions"
+          ("a" "Code-actions" eglot-code-actions)
+          ("r" "Rename" eglot-rename)
+          ("s" "Eglot Symbols" consult-eglot-symbols)
+          ("f" "Format buffer" eglot-format-buffer)]
+         ["Navigation"
+          ("i" "Find implementation" eglot-find-implementation)
+          ("d" "Find declaration" eglot-find-declaration)
+          ("x" "show errors in active buffers" consult-flymake)
+          ("X" "show errors in project" flymake-show-project-diagnostics)]
+         ["Eglot server map"
+          ("e" "Eglot" my-eglot-server-transint)]]))
+
+
+    (transient-define-prefix my/lsp-transient ()
+      "LSP commands"
+      [["Actions"
+        ("d" "Definition" lsp-find-definition)
+        ("r" "References" lsp-find-references)
+        ("i" "Implementation" lsp-find-implementation)
+        ("t" "Type Definition" lsp-find-type-definition)
+        ("s" "Symbol" consult-lsp-symbols)
+        ("f" "Format Buffer" lsp-format-buffer)
+        ("a" "Code Action" lsp-execute-code-action)]
+       ["Diagnostics"
+        ("n" "Next Diagnostic" flycheck-next-error)
+        ("p" "Previous Diagnostic" flycheck-previous-error)
+        ("l" "List Diagnostics" lsp-ui-flycheck-list)]
+       ["Workspace"
+        ("R" "Restart Workspace" lsp-restart-workspace)
+        ("q" "Shutdown Workspace" lsp-shutdown-workspace)
+        ("r" "Rename Symbol" lsp-rename)]
+       ["Other"
+        ("m" "Toggle LSP Mode" lsp-mode)]])
+
+   (meow-leader-define-key
+    '("'" . my/lsp-transient))
+
+#+end_src
+
+
+ 
+#+RESULTS:
+ 
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-transient"
+#+end_src
+** tabspaces
+like perps-mode, perps.el and perspective.el but simpler and utilizing the built in tab-bar-mode
+ 
+#+begin_src emacs-lisp
+    (setup (:pkg tabspaces :host github :repo "mclear-tools/tabspaces")
+      (tabspaces-mode 1)
+      (:option tabspaces-use-filtered-buffers-as-default t
+               tabspaces-default-tab "Default"
+               tabspaces-remove-to-default t
+               tabspaces-include-buffers '("*scratch*")
+               tabspaces-initialize-project-with-todo t
+               tabspaces-todo-file-name "project-todo.org"
+               ;; sessions
+               tabspaces-session t))
+  (transient-define-prefix tabspaces-transient ()
+    "TabSpaces: Manage workspaces and buffers"
+    [["Buffer Management"
+      ("k" "Kill buffers & close ws" tabspaces-kill-buffers-close-workspace)
+      ("c" "Clear buffers" tabspaces-clear-buffers)
+      ("d" "Remove ted buffer" tabspaces-remove-selected-buffer)]
+     ["Workspace Management"
+      ("w" "Close workspace" tabspaces-close-workspace)
+      ("s" "Switch/Create workspace" tabspaces-switch-or-create-workspace)
+      ("o" "Open/Create project/ws" tabspaces-open-or-create-project-and-workspace)]
+     ["Buffer Navigation"
+      ("b" "Switch buffer" tabspaces-switch-to-buffer)
+      ("t" "Switch buffer & tab" tabspaces-switch-buffer-and-tab)]])
+ 
+    ;; Filter Buffers for Consult-Buffer
+ 
+    (with-eval-after-load 'consult
+      ;; hide full buffer list (still available with "b" prefix)
+      (consult-customize consult--source-buffer :hidden t :default nil)
+      ;; set consult-workspace buffer list
+      (defvar consult--source-workspace
+        (list :name     "Workspace Buffers"
+              :narrow   ?w
+              :history  'buffer-name-history
+              :category 'buffer
+              :state    #'consult--buffer-state
+              :default  t
+              :items    (lambda () (consult--buffer-query
+                                    :predicate #'tabspaces--local-buffer-p
+                                    :sort 'visibility
+                                    :as #'buffer-name)))
+ 
+        "Set workspace buffer list for consult-buffer.")
+      (add-to-list 'consult-buffer-sources 'consult--source-workspace))
+ 
+#+end_src
+ 
+#+RESULTS:
+| consult--source-workspace | consult--source-hidden-buffer | consult--source-modified-buffer | consult--source-buffer | consult--source-recent-file | consult--source-file-register | consult--source-bookmark | consult--source-project-buffer-hidden | consult--source-project-recent-file-hidden |
+ 
+** Editor config
+#+begin_src  emacs-lisp
+  (setup (:pkg editorconfig))
+  (require 'editorconfig)
+  (editorconfig-mode 1)
+#+end_src
+ 
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-editorconfig"
+#+end_src
+** org gtd
+#+begin_src emacs-lisp
+    (setup (:pkg org-gtd :host github :repo "trevoke/org-gtd.el"))
+    (setq org-gtd-update-ack "3.0.0")
+    (require 'org-gtd)
+    (setq org-gtd-directory "~/Dropbox/org/")
+    (org-gtd-mode 1)
+    (transient-define-prefix my/org-gtd-transient-menu ()
+      "Org GTD"
+      ["Org GTD Commands"
+       ("c" "Capture Task" org-capture)
+       ("p" "Process Inbox" org-gtd-process-inbox)
+       ("e" "Engage" org-gtd-engage)
+       ("r" "organize" org-gtd-organize)
+       ])
+
+  (setq org-capture-templates
+        '(("i" "Inbox" entry (file "~/Dropbox/org/inbox.org")
+           "* %?\n%U\n" :prepend t)
+          ("t" "Task" entry (file "~/Dropbox/org/inbox.org")
+           "* TODO %?\n%U\n" :prepend t)
+          ;; Add other templates here
+          ))
+
+     (meow-leader-define-key
+     '("n" . my/org-gtd-transient-menu))
+#+end_src
+ 
+#+RESULTS:
+** bicep-mode
+#+begin_src emacs-lisp
+  (setup (:pkg bicep-mode :host github :repo "christiaan-janssen/bicep-mode"))
+  (require 'bicep-mode)
+
+   (add-to-list 'eglot-server-programs
+                '(bicep-mode . ("dotnet" "~/.vscode/extensions/ms-azuretools.vscode-bicep-0.30.23/bicepLanguageServer/Bicep.LangServer.dll")))
+  (require 'tree-sitter)
+   (add-to-list 'tree-sitter-major-mode-language-alist
+                '(bicep-mode . bicep))
+
+  (defun my-read-file-to-string (file)
+    (with-temp-buffer
+      (insert-file file)
+      (buffer-string)))
+  ;; (defun setup-bicep-mode ()
+  ;;   (eglot-ensure))
+
+
+  ;;   (setq treesit-language-source-alist
+  ;;       '((bicep . ("https://github.com/tree-sitter/tree-sitter-bicep"))))
+
+  ;; (dolist (source treesit-language-source-alist)
+  ;;   (unless (treesit-ready-p (car source))
+  ;;     (treesit-install-language-grammar (car source))))
+
+  ;; (add-to-list 'auto-mode-alist '("\\.bicep\\'" . bicep-mode))
+  ;; (add-to-list 'auto-mode-alist '("\\.bicepparams\\'" . bicep-mode))
+  ;; (add-to-list 'major-mode-remap-alist '(bicep-mode . bicep-ts-mode))
+
+  ;; (defun org-babel-edit-prep:bicep (babel-info)
+  ;;   ;; This gets the second item in the "babel-info" list, which holds the code in the original src block
+  ;;   (setq-local src-code (nth 1 babel-info))
+  ;;   (setq-local buffer-file-name (expand-file-name (->> babel-info caddr (alist-get :tangle))))
+  ;;   (setq-local buffer-src-code (replace-regexp-in-string src-code "" (my-read-file-to-string (buffer-file-name))))
+  ;;   (goto-char (point-max))
+  ;;   (insert buffer-src-code)
+  ;;   (narrow-tqo-region (point-min) (+ (point-min) (length src-code)))
+  ;;   (bicep-mode)
+  ;;   (org-src-mode))
+
+  ;; (defun my-delete-hidden-text ()
+  ;;   "Remove all text that would be revealed by a call to `widen'"
+  ;;   (-let [p-start (point-max)]
+  ;;     (widen)
+  ;;     (delete-region p-start (point-max))))
+
+  ;; (define-advice org-edit-src-exit
+  ;;     (:before (&rest _args) remove-src-block)
+  ;;   (when (eq major-mode 'bicep-mode)
+  ;;     (my-delete-hidden-text)))
+
+  ;; (define-advice org-edit-src-save
+  ;;     (:before (&rest _args) remove-src-block)
+  ;;   (when (eq major-mode 'bicep-mode)
+  ;;     (my-delete-hidden-text)))
+#+end_src
+ 
+#+RESULTS:
+: my-read-file-to-string
+** Garbage Collector Magic Hack
+#+begin_src emacs lisp
+#+end_src
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-gcmh"
+#+end_src
+** Guix UI in emacs
+#+begin_src emacs-lisp
+  (setup (:pkg guix))
+#+end_src
+ 
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+"emacs-guix"
+#+end_src
+** All the Icons
+#+begin_src  emacs-lisp
+      (setup (:pkg all-the-icons-dired)
+        (:hook-into dired-mode))
+    (all-the-icons-completion-mode)
+    (add-hook 'marginalia-mode-hook #'all-the-icons-completion-marginalia-setup)
+ 
+  (setup (:pkg kind-icon))
+  (add-hook 'my-completion-ui-mode-hook
+   	    (lambda ()
+   	      (setq completion-in-region-function
+   		    (kind-icon-enhance-completion
+   		     completion-in-region-function))))
+                     #+end_src
+ 
+#+RESULTS:
+ 
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-all-the-icons"
+  "emacs-all-the-icons-dired"
+  "emacs-all-the-icons-ibuffer"
+  "emacs-all-the-icons-completion"
+  "emacs-kind-icon"
+#+end_src
+** Embark
+#+begin_src emacs-lisp
+    (setup (:pkg embark))
+    (setup (:pkg embark-consult :straight t))
+    (global-set-key (kbd "C-,") 'embark-act)
+    (global-set-key (kbd "C-:") 'embark-dwim)
+    (global-set-key (kbd  "C-h B") 'embark-bindings)
+    (defun embark-which-key-indicator ()
+    "An embark indicator that displays keymaps using which-key.
+  The which-key help message will show the type and value of the
+  current target followed by an ellipsis if there are further
+  targets."
+    (lambda (&optional keymap targets prefix)
+      (if (null keymap)
+          (which-key--hide-popup-ignore-command)
+        (which-key--show-keymap
+         (if (eq (plist-get (car targets) :type) 'embark-become)
+             "Become"
+           (format "Act on %s '%s'%s"
+                   (plist-get (car targets) :type)
+                   (embark--truncate-target (plist-get (car targets) :target))
+                   (if (cdr targets) "…" "")))
+         (if prefix
+             (pcase (lookup-key keymap prefix 'accept-default)
+               ((and (pred keymapp) km) km)
+               (_ (key-binding prefix 'accept-default)))
+           keymap)
+         nil nil t (lambda (binding)
+                     (not (string-suffix-p "-argument" (cdr binding))))))))
+ 
+  (setq embark-indicators
+    '(embark-which-key-indicator
+      embark-highlight-indicator
+      embark-isearch-highlight-indicator))
+ 
+  (defun embark-hide-which-key-indicator (fn &rest args)
+    "Hide the which-key indicator immediately when using the completing-read prompter."
+    (which-key--hide-popup-ignore-command)
+    (let ((embark-indicators
+           (remq #'embark-which-key-indicator embark-indicators)))
+        (apply fn args)))
+ 
+  (advice-add #'embark-completing-read-prompter
+              :around #'embark-hide-which-key-indicator)
+#+end_src
+ 
+#+RESULTS:
+ 
+ 
+ 
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-embark"
+  #+end_src
+** wgrep
+makes grep buffers writeable.
+#+begin_src emacs-lisp
+    (setup (:pkg wgrep))
+    #+end_src
+ 
+#+RESULTS:
+| emacs-wgrep | emacs-paredit | emacs-sly | emacs-embark | emacs-kind-icon | emacs-all-the-icons-dired | emacs-guix | emacs-editorconfig | emacs-transient | emacs-org-modern | emacs-magit | emacs-orderless | emacs-flycheck | emacs-marginalia | emacs-consult | emacs-eros | emacs-aggressive-indent | emacs-vertico | emacs-yasnippet | emacs-cape | emacs-corfu | emacs-doom-modeline | emacs-doom-themes | emacs-which-key | emacs-diminish | emacs-no-littering |
+ 
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-wgrep"
+  #+end_src
+** dslides
+#+begin_src emacs-lisp
+  (setup (:pkg dslide :host github :repo "positron-solutions/dslide"))
+  (use-package master-of-ceremonies
+    :straight (master-of-ceremonies 
+               :type git :host github
+               :repo "positron-solutions/master-of-ceremonies"))
+  ;; (use-package master-of-ceremonies)
+  ;; something like this should work
+  (require 'master-of-ceremonies)
+  (require 'dslide)
+  (add-hook 'dslide-start-hook mc-hide-markup-mode)
+  (add-hook 'dslide-narrow-hook #'mc-hide-refresh)
+  (add-hook 'dslide-start-hook mc-hide-cursor-mode)
+#+end_src
+
+#+begin_src emacs-lisp
+
+  (set-face-attribute 'dslide-highlight nil :foreground "white" :background "green")
+  (set-face-attribute 'dslide-babel-success-highlight nil :foreground "white" :background "blue")
+  (set-face-attribute 'dslide-babel-error-highlight nil :foreground "white" :background "red")
+#+end_src
+
+#+RESULTS:
+** pdf-tools
+#+begin_src emacs-lisp
+  (use-package pdf-tools)
+  (require 'pdf-tools)
+#+end_src
+
+#+RESULTS:
+
+** Lisps
+*** Emacs Lisp
+#+begin_src  emacs-lisp
+  ;; match da pairs
+  (electric-pair-mode 1)
+    (add-hook 'org-mode-hook (lambda ()
+               (setq-local electric-pair-inhibit-predicate
+                       `(lambda (c)
+                      (if (char-equal c ?<) t (,electric-pair-inhibit-predicate c))))))
+
+
+      (setup (:pkg aggressive-indent))
+
+      (setup (:pkg elsa :straight t))
+
+      (setup (:pkg eros))
+      (eros-mode 1)
+      ;; (aggressive-indent-global-mode 1)
+
+
+#+end_src
+ 
+ 
+*Guix Packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-eros"
+  "emacs-aggressive-indent"
+#+end_src
+ 
+** Common Lisp
+#+begin_src emacs-lisp
+        ;; (setup (:pkg sly))
+        (setup (:pkg paredit))
+  (use-package slime
+    :ensure t
+    :config
+    (setq inferior-lisp-program "sbcl")
+    (setq slime-contribs '(slime-fancy))
+    (slime-setup '(slime-fancy)))
+
+    ;; (setq inferior-lisp-program "sbcl")
+     ;; (setq sly-lisp-implementations
+     ;;       '((sbcl ("sbcl" "--dynamic-space-size" "4Gb"))))
+    ;; Enable paredit for Common Lisp programming
+    (add-hook 'lisp-mode-hook #'enable-paredit-mode)
+     
+    ;; Enable paredit for Emacs Lisp programming
+    (add-hook 'emacs-lisp-mode-hook #'enable-paredit-mode)
+     
+    ;; Enable paredit for Scheme programming
+    (add-hook 'scheme-mode-hook #'enable-paredit-mode)
+    ;; Enable paredit for Scheme programming
+    (add-hook 'scheme-mode-hook #'enable-paredit-mode)
+
+    ;; Enable paredit for Common Lisp programming
+    (add-hook 'lisp-mode-hook #'aggressive-indent-mode)
+
+    ;; Enable paredit for Emacs Lisp programming
+    (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
+
+    ;; Enable paredit for Scheme programming
+    (add-hook 'scheme-mode-hook #'aggressive-indent-mode)
+    ;; Enable paredit for Scheme programming
+    (add-hook 'scheme-mode-hook #'aggressive-indent-mode)
+#+end_src
+ 
+#+RESULTS:
+| aggressive-indent-mode | enable-paredit-mode | geiser-mode--maybe-activate |
+ 
+*Guix packages*
+#+begin_src scheme :noweb-ref packages :noweb-sep ""
+  "emacs-sly"
+  "emacs-sly-quicklisp"
+  "emacs-paredit"
+  "sbcl"
+   #+end_src
+
+** GIFS
+#+begin_src emacs-lisp
+(use-package gif-screencast
+  :ensure t
+  :config
+  (setq gif-screencast-program "flameshot_bash")
+  (setq gif-screencast-args '()))
+  (use-package keycast)
+#+end_src
+
+#+RESULTS:
+
+*** Flameshot Bash Script
+#+PROPERTY: header-args:bash :tangle ~/bin/flameshot_bash
+#+PROPERTY: header-args:bash :shebang 
+#+begin_src bash :tangle ~/bin/flameshot_bash :shebang "#!/bin/bash"
+  flameshot full -r>"$1"
+  #+end_src
+#+RESULTS:
+
+** web
+#+begin_src emacs-lisp
+    (use-package impatient-mode
+      :ensure t
+      :hook ((clog-mode . impatient-mode)
+             (html-mode . impatient-mode)
+             (css-mode . impatient-mode)
+             (mhtml-mode . impatient-mode)))
+
+              ;; Configure mhtml-mode for .clog files
+              (use-package mhtml-mode
+                :mode ("\\.clog\\'" . mhtml-mode))
+
+    (require 'dash)
+    (require 'dash)
+    (require 'sly)
+    (require 'skewer-mode)
+
+(defun ps-cleanup-js (result)
+  "Clean up JavaScript from Parenscript evaluation result."
+  (->> result
+       cadr                        ; Get second element ("\"console.log('10');\"")
+       (s-chop-prefix "\"")       ; Remove leading quote
+       (s-chop-suffix "\"")       ; Remove trailing quote
+       clean-ps-wrapper
+       (s-replace "\\'" "'")))    ; Unescape quotes
+
+(defun clean-ps-wrapper (str)
+  (if (and (s-starts-with-p "ps(" str)
+           (s-ends-with-p ");" str))
+      (->> str
+           (s-chop-prefix "ps(")
+           (s-chop-suffix ");"))
+    str))
+
+    (defun ps-sly-eval (string callback)
+      "Evaluate Parenscript STRING using Sly and pass result to CALLBACK."
+      (message "Input string: %s" string)
+      (let ((ps-form (format "(ps:ps %s)" string)))
+        (message "PS form: %s" ps-form)
+        (sly-eval-async
+            `(slynk:eval-and-grab-output ,ps-form)
+          (lambda (result)
+            (message "Raw result: %S" result)
+            (message "Cleaned result: %s" (ps-cleanup-js result))
+            (->> result
+                 ps-cleanup-js
+                 skewer-eval)))))
+
+  (defun ps-sly-eval-and-skewer (string)
+    "Compile STRING as Parenscript and evaluate in browser via skewer."
+    (ps-sly-eval string
+                 (lambda (js-code)
+                   (message "About to skewer eval: %s" js-code)
+                   (skewer-eval js-code
+                                (lambda (result)
+                                  (message "Skewer result: %S" result))))))
+    (defun ps-sly-eval-last-expression ()
+      "Evaluate sexp before point as Parenscript and send to browser."
+      (interactive)
+      (ps-sly-eval-and-skewer (sly-last-expression)))
+
+    (defun ps-sly-eval-defun ()
+      "Evaluate the current toplevel form as Parenscript and send to browser."
+      (interactive)
+      (ps-sly-eval-and-skewer (sly-defun-at-point)))
+
+    ;; Optional: bind to keys
+#+end_src
+
+#+RESULTS:
+: ps-sly-eval-defun
+
+
+* Wrap Up
+** Guix Emacs Profile
+ 
+*.config/guix/manifests/emacs.scm:*
+ 
+#+begin_src scheme :mkdirp yes :tangle ~/.config/guix/manifests/emacs.scm :noweb yes
+  (specifications->manifest
+   '("emacs"
+     <<packages>>
+  ))
+#+end_src
+* Runtime Performance
+ 
+Dial the GC threshold back down so that garbage collection happens more frequently but in less time.
+ 
+#+begin_src emacs-lisp
+ 
+ 
+ 
+#+end_src
