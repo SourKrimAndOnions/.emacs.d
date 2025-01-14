@@ -459,7 +459,12 @@ navigation etc. available since you're in your editor.
     (add-to-list 'completion-at-point-functions #'cape-file)
     (add-to-list 'completion-at-point-functions #'cape-dabbrev))
 
+  (use-package consult-lsp
+    :ensure t)
 
+  (use-package consult-flycheck
+    :ensure t)
+  
   (use-package lsp-mode
     :commands (lsp lsp-deferred)
     :hook ((csharp-mode . lsp-deferred)
@@ -481,7 +486,7 @@ navigation etc. available since you're in your editor.
          ["Diagnostics"
           ("n" "Next Diagnostic" flycheck-next-error)
           ("p" "Previous Diagnostic" flycheck-previous-error)
-          ("l" "List Diagnostics" lsp-ui-flycheck-list)]
+          ("l" "List Diagnostics" consult-flymake)]
          ["Workspace"
           ("R" "Restart Workspace" lsp-restart-workspace)
           ("q" "Shutdown Workspace" lsp-shutdown-workspace)
@@ -507,21 +512,22 @@ navigation etc. available since you're in your editor.
 
   ;; Optional: Add company-mode as a fallback
   ;; SLIME configuration
-  (use-package slime
-    :ensure t
-    :defer t
-    :init
-    (setq inferior-lisp-program "sbcl")
-    (setq slime-lisp-implementations
-          '((sbcl ("sbcl" "--dynamic-space-size" "4Gb"))))
-    :config
-    (slime-setup '(slime-fancy slime-repl slime-scratch slime-trace-dialog slime-cl-indent slime-cape)))
-  (use-package slime-cape
-    :ensure (slime-cape :type git :host github :repo "ccqpein/slime-cape")
-    :after (slime cape)
-    :hook (slime . slime-cape)
-    (slime-repl . slime-cape))
-
+  ;; (use-package slime
+  ;;   :ensure t
+  ;;   :defer t
+  ;;   :init
+  ;;   (setq inferior-lisp-program "sbcl")
+  ;;   (setq slime-lisp-implementations
+  ;;         '((sbcl ("sbcl" "--dynamic-space-size" "4Gb"))))
+  ;;   :config
+  ;;   (slime-setup '(slime-fancy slime-repl slime-scratch slime-trace-dialog slime-cl-indent slime-cape)))
+  ;; (use-package slime-cape
+  ;;   :ensure (slime-cape :type git :host github :repo "ccqpein/slime-cape")
+  ;;   :after (slime cape)
+  ;;   :hook (slime . slime-cape)
+  ;;   (slime-repl . slime-cape))
+  (use-package sly
+    :ensure t)
   (use-package vertico
     :ensure t
     :init
@@ -575,6 +581,9 @@ navigation etc. available since you're in your editor.
     (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
     :bind ([remap dabbrev-expand] . hippie-expand))
 #+end_src
+
+#+RESULTS:
+: hippie-expand
 
 ** flycheck
 #+begin_src emacs-lisp
@@ -677,7 +686,7 @@ like perps-mode, perps.el and perspective.el but simpler and utilizing the built
 #+end_src
 
 #+RESULTS:
-: my/org-gtd-transient-menu
+: [nil 26491 37845 593845 nil elpaca-process-queues nil nil 569000 nil]
 
 ** Garbage Collector Magic Hack
 
@@ -801,34 +810,34 @@ some configuration for debugging slides
 #+begin_src emacs-lisp
   (use-package paredit
         :hook ((lisp-mode . #'enable-paredit-mode)
-               (emacs-lisp-mode . #'enable-paredit-mode)))    
+               (emacs-lisp-mode . #'enable-paredit-mode)))
   ;;paren files should also be lispy lisp mode (js but in lisp ma god)
-    (add-to-list 'auto-mode-alist (cons "\\.paren\\'" 'lisp-mode))
-          (add-hook 'lisp-mode-hook
-                    #'(lambda ()
-                        (when (and buffer-file-name
-                                   (string-match-p "\\.paren\\>" buffer-file-name))
-                          (unless (slime-connected-p)
-                            (save-excursion (slime)))
-                          (trident-mode +1))))
+    ;; (add-to-list 'auto-mode-alist (cons "\\.paren\\'" 'lisp-mode))
+    ;;       (add-hook 'lisp-mode-hook
+    ;;                 #'(lambda ()
+    ;;                     (when (and buffer-file-name
+    ;;                                (string-match-p "\\.paren\\>" buffer-file-name))
+    ;;                       (unless (slime-connected-p)
+    ;;                         (save-excursion (slime)))
+    ;;                       (trident-mode +1))))
 
-          (defun steal-slime-keys-for-trident! ()
-          ;; Don't affect all SLIME buffers, just where invoked
-          (make-local-variable 'slime-mode-map)
-          (let ((map slime-mode-map))
-            (define-key map (kbd "C-x C-e") nil)
-            (define-key map (kbd "C-c C-r") nil)
-            (define-key map (kbd "C-M-x")   nil)
-            (define-key map (kbd "C-c C-k") nil)
-            (define-key map (kbd "C-c C-m") nil))
-          (let ((map trident-mode-map))
-            (define-key map (kbd "C-x C-e") 'trident-eval-last-expression)
-            (define-key map (kbd "C-c C-r") 'trident-eval-region)
-            (define-key map (kbd "C-M-x")   'trident-eval-defun)
-            (define-key map (kbd "C-c C-k") 'trident-eval-buffer)
-            (define-key map (kbd "C-c C-m") 'trident-expand-sexp)))
+    ;;       (defun steal-slime-keys-for-trident! ()
+    ;;       ;; Don't affect all SLIME buffers, just where invoked
+    ;;       (make-local-variable 'slime-mode-map)
+    ;;       (let ((map slime-mode-map))
+    ;;         (define-key map (kbd "C-x C-e") nil)
+    ;;         (define-key map (kbd "C-c C-r") nil)
+    ;;         (define-key map (kbd "C-M-x")   nil)
+    ;;         (define-key map (kbd "C-c C-k") nil)
+    ;;         (define-key map (kbd "C-c C-m") nil))
+    ;;       (let ((map trident-mode-map))
+    ;;         (define-key map (kbd "C-x C-e") 'trident-eval-last-expression)
+    ;;         (define-key map (kbd "C-c C-r") 'trident-eval-region)
+    ;;         (define-key map (kbd "C-M-x")   'trident-eval-defun)
+    ;;         (define-key map (kbd "C-c C-k") 'trident-eval-buffer)
+    ;;         (define-key map (kbd "C-c C-m") 'trident-expand-sexp)))
 
-        (add-hook 'trident-mode-hook 'steal-slime-keys-for-trident!)
+    ;;     (add-hook 'trident-mode-hook 'steal-slime-keys-for-trident!)
 #+end_src
  
 ** GIFS
