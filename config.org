@@ -165,27 +165,10 @@ professional work
              (http . t)))))
 #+end_src
 
-#+RESULTS:
-: t
-
-
-#+begin_src emacs-lisp 
-
-#+end_src
-
-#+RESULTS: babel-packages
-: ob-fsharp
-#+begin_src sh
-  sleep 3 && echo "Hello World"
-#+end_src
-
-#+RESULTS:
-: Hello World
- 
 ** formatting
 #+begin_src emacs-lisp
   (setq-default indent-tabs-mode nil)
-      (setq-default tab-width 4)  ; Set width for tabs
+      (setq-default tab-width 4) 
       (setq-default require-final-newline nil)
       (setq-default mode-require-final-newline nil)
       (setq c-require-final-newline '((c-mode . nil) (c++-mode . nil) (objc-mode . nil)))
@@ -215,11 +198,10 @@ professional work
   (setq compilation-ask-about-save nil)
 #+end_src
  
-#+RESULTS:
- 
-* Behaviour
+** Behaviour
 #+begin_src emacs-lisp
   (setq-default abbrev-mode t)
+  (setf recentf-mode t)
 #+end_src
 
 ** eshell
@@ -231,7 +213,6 @@ professional work
     (add-to-list 'eshell-path-env-list "~/.local/bin/"))
 #+end_src
 * packages
-
 ** Keep .emacs.d Clean
 Ensuring a clean .emacs.d directory by relocating transient files.
 I don't want a bunch of transient files showing up as untracked in the Git repo so I move them all to another location.
@@ -307,7 +288,7 @@ I don't want a bunch of transient files showing up as untracked in the Git repo 
 #+RESULTS:
  
 *Guix Packages*
-** Update Load Path
+** Load custom lisp
 I've got a folder of custom Emacs Lisp libraries which must be added to the load path.
 #+begin_src emacs-lisp
   ;; Add my library path to load-path
@@ -441,145 +422,116 @@ navigation etc. available since you're in your editor.
 
 ** completion
 #+begin_src emacs-lisp
-  (use-package corfu
-    :ensure t
-    :custom
-    (corfu-auto t)
-    (corfu-auto-delay 0.0)
-    (corfu-auto-prefix 2)
-    (corfu-preview-current t)
-    (corfu-preselect-first t)
-    :init
-    (global-corfu-mode))
 
-  ;; Cape for better completion sources
-  (use-package cape
-    :ensure t
-    :init
-    (add-to-list 'completion-at-point-functions #'cape-file)
-    (add-to-list 'completion-at-point-functions #'cape-dabbrev))
-
-  (use-package consult-lsp
-    :ensure t)
-
-  (use-package consult-flycheck
-    :ensure t)
-  
-  (use-package lsp-mode
-    :commands (lsp lsp-deferred)
-    :hook ((csharp-mode . lsp-deferred)
-           ;; (fsharp-mode . lsp-deferred)
-           )
-    :config
-    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
-    (setq lsp-prefer-capf t)
-    (transient-define-prefix my/lsp-transient ()
-    "LSP commands"
-        [["Actions"
-          ("d" "Definition" lsp-find-definition)
-          ("?" "References" lsp-find-references)
-          ("i" "Implementation" lsp-find-implementation)
-          ("t" "Type Definition" lsp-find-type-definition)
-          ("s" "Symbol" consult-lsp-symbols)
-          ("f" "Format Buffer" lsp-format-buffer)
-          ("a" "Code Action" lsp-execute-code-action)]
-         ["Diagnostics"
-          ("n" "Next Diagnostic" flycheck-next-error)
-          ("p" "Previous Diagnostic" flycheck-previous-error)
-          ("l" "List Diagnostics" consult-flymake)]
-         ["Workspace"
-          ("R" "Restart Workspace" lsp-restart-workspace)
-          ("q" "Shutdown Workspace" lsp-shutdown-workspace)
-          ("r" "Rename Symbol" lsp-rename)]
-         ["Other"
-          ("m" "Toggle LSP Mode" lsp-mode)]]))
-
-
-  ;; Make sure orderless works well with LSP
-  (use-package orderless
-    :ensure t
-    :custom
-    (completion-styles '(orderless basic))
-    (completion-category-overrides
-     '((eglot-capf (styles orderless basic))
-       (lsp-capf (styles orderless basic))
-       (file (styles . (partial-completion orderless)))))
-    (orderless-component-separator #'orderless-escapable-split-on-space)
-    (orderless-matching-styles 
-     '(orderless-literal
-       orderless-prefixes
-       orderless-flex)))
-
-  ;; Optional: Add company-mode as a fallback
-  ;; SLIME configuration
-  ;; (use-package slime
-  ;;   :ensure t
-  ;;   :defer t
-  ;;   :init
-  ;;   (setq inferior-lisp-program "sbcl")
-  ;;   (setq slime-lisp-implementations
-  ;;         '((sbcl ("sbcl" "--dynamic-space-size" "4Gb"))))
-  ;;   :config
-  ;;   (slime-setup '(slime-fancy slime-repl slime-scratch slime-trace-dialog slime-cl-indent slime-cape)))
-  ;; (use-package slime-cape
-  ;;   :ensure (slime-cape :type git :host github :repo "ccqpein/slime-cape")
-  ;;   :after (slime cape)
-  ;;   :hook (slime . slime-cape)
-  ;;   (slime-repl . slime-cape))
-  (use-package sly
-    :ensure t)
   (use-package vertico
-    :ensure t
-    :init
-    (vertico-mode)
-    :custom
-    (vertico-resize nil)
-    (vertico-count 17)
-    (vertico-cycle t)
-    :bind (:map vertico-map
-                ("M-RET" . vertico-exit-input)
-                ("C-SPC" . +vertico/embark-preview)
-                ("C-n" . vertico-next)
-                ("C-M-j" . vertico-next-group)
-                ("C-e" . vertico-previous)
-                ("C-M-k" . vertico-previous-group)
-                :map minibuffer-local-map
-                ("DEL" . vertico-directory-delete-char))
-    :hook (minibuffer-setup . vertico-repeat-save))
-
-  ;; Ensure fsharp-mode is  installed and required
-  (use-package sharper
-    :bind (("C-c d" . #'sharper-main-transient)))
-
-  (use-package fsharp-mode)
-  (add-hook 'web-mode-hook 'my-web-mode-hook)
-  (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
-  (use-package eglot-fsharp)
-  ;; SLIME-Cape integration
-  (use-package yasnippet-capf
-    :ensure t
-    :after (cape yasnippet)
     :config
-    (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+    (vertico-mode))
+    
+      (use-package consult
+      :bind (([remap switch-to-buffer] . consult-buffer))
+      :after vertico)
 
-  ;; Configure hippie-expand with YASnippet
-  (use-package yasnippet
-    :ensure t
-    :config
-    (yas-global-mode 1)
-    (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
-    (setq hippie-expand-try-functions-list
-          (cons 'yas-hippie-try-expand
-                (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
+    (use-package vertico-prescient
+      :after prescient
+      :config
+      (vertico-prescient-mode t))
 
-  ;; Dabbrev configuration
-  (use-package dabbrev
-    :ensure nil  ; built-in package
+    ;;; Completion at point
+
+    (use-package corfu
+      :config
+      (setopt corfu-cycle t)
+      (setopt corfu-auto t)
+      (setopt corfu-separator ?\s)          ; ?\s is " "
+      (setopt tab-always-indent 'complete)
+      (setopt corfu-min-width 30)
+      (keymap-set corfu-map "RET" nil) ; aborts after newline
+      (global-corfu-mode 1))
+
+    (use-package cape
+      :init
+      (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+      (add-to-list 'completion-at-point-functions #'cape-file)
+      (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+      (add-to-list 'completion-at-point-functions #'cape-elisp-block))
+
+    (use-package consult-lsp
+        :ensure t)
+
+    (use-package consult-flycheck
+        :ensure t)
+
+    (use-package lsp-mode
+        :commands (lsp lsp-deferred)
+        :hook ((csharp-mode . lsp-deferred)
+               ;; (fsharp-mode . lsp-deferred)
+               )
+        :config
+        (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+        (setq lsp-prefer-capf t)
+        (transient-define-prefix my/lsp-transient ()
+        "LSP commands"
+            [["Actions"
+              ("d" "Definition" lsp-find-definition)
+              ("?" "References" lsp-find-references)
+              ("i" "Implementation" lsp-find-implementation)
+              ("t" "Type Definition" lsp-find-type-definition)
+              ("s" "Symbol" consult-lsp-symbols)
+              ("f" "Format Buffer" lsp-format-buffer)
+              ("a" "Code Action" lsp-execute-code-action)]
+             ["Diagnostics"
+              ("n" "Next Diagnostic" flycheck-next-error)
+              ("p" "Previous Diagnostic" flycheck-previous-error)
+              ("l" "List Diagnostics" consult-flymake)]
+             ["Workspace"
+              ("R" "Restart Workspace" lsp-restart-workspace)
+              ("q" "Shutdown Workspace" lsp-shutdown-workspace)
+              ("r" "Rename Symbol" lsp-rename)]
+             ["Other"
+              ("m" "Toggle LSP Mode" lsp-mode)]]))
+
+
+      ;; Make sure orderless works well with LSP
+    (use-package orderless
     :config
-    (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
-    (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
-    (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
-    :bind ([remap dabbrev-expand] . hippie-expand))
+    (setopt completion-styles '(orderless basic))
+    (setopt completion-category-overrides '((file (styles basic partial-completion)))))
+      (use-package sly
+        :ensure t)
+
+      (use-package sharper
+        :bind (("C-c d" . #'sharper-main-transient)))
+
+      (use-package fsharp-mode)
+      (add-hook 'web-mode-hook 'my-web-mode-hook)
+      (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
+      (use-package eglot-fsharp)
+      ;; SLIME-Cape integration
+      (use-package yasnippet-capf
+        :ensure t
+        :after (cape yasnippet)
+        :config
+        (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+
+      ;; Configure hippie-expand with YASnippet
+      (use-package yasnippet
+        :ensure t
+        :config
+        (yas-global-mode 1)
+        (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
+        (setq hippie-expand-try-functions-list
+              (cons 'yas-hippie-try-expand
+                    (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
+
+
+      ;; Dabbrev configuration
+      (use-package dabbrev
+        :ensure nil  ; built-in package
+        :config
+        (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
+        (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
+        (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
+        :bind ([remap dabbrev-expand] . hippie-expand))
 #+end_src
 
 #+RESULTS:
@@ -798,13 +750,14 @@ some configuration for debugging slides
 
   ;; Enable paredit for Emacs Lisp programming
 
+  (defun my-setup-check-parens ()
+      (add-hook 'before-save-hook
+                #'check-parens))
+  (add-hook 'emacs-lisp-mode-hook #'my-setup-check-parens)
 
-  ;; (use-package elsa)      
   (use-package eros
     :config
     (setf eros-mode 1))
-
-  ;; (aggressive-indent-global-mode 1)
 #+end_src
 ** Common Lisp
 #+begin_src emacs-lisp
@@ -913,6 +866,49 @@ some configuration for debugging slides
                         :activation-fn (lsp-activate-on "bicep")
                         :server-id 'bicep))))
 #+end_src
+
+** Marginalia
+increases details in the minibuffer for things like files and also
+when looking up function
+#+begin_src emacs-lisp
+      (use-package marginalia
+        :ensure t
+        :init (marginalia-mode))
+#+end_src
+
+#+RESULTS:
+: [nil 26519 32347 694684 nil elpaca-process-queues nil nil 321000 nil]
+
+** Helpful
+
+additional information when looking up elisp functions
+#+begin_src emacs-lisp
+  (use-package helpful
+    ;; Note that the built-in `describe-function' includes both functions
+    ;; and macros. `helpful-function' is functions only, so we provide
+    ;; `helpful-callable' as a drop-in replacement.
+    :bind (([remap describe-function] . #'helpful-callable)
+           ([remap describe-variable] . #'helpful-variable)
+           ([remap describe-key] . #'helpful-key)
+           :map help-map
+           ("p" . #'helpful-at-point)))
+#+end_src
+
+** prescient
+I want emacs to remember what files i have visited as I often will
+visit them again. I use vertico for my minibuffer therefore I need the
+vertico package of prescient.
+#+begin_src emacs-lisp
+  (use-package prescient
+  :after vertico
+  :config
+  (setopt prescient-history-length 200)
+  (setopt prescient-sort-length-enable t))
+  #+end_src
+
+#+RESULTS:
+: [nil 26519 33959 746874 nil elpaca-process-queues nil nil 880000 nil]
+
 * Finans
 #+begin_src emacs-lisp
   (use-package ledger-mode
