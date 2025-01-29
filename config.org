@@ -596,20 +596,7 @@ like perps-mode, perps.el and perspective.el but simpler and utilizing the built
         "Set workspace buffer list for consult-buffer.")
 
       (add-to-list 'consult-buffer-sources 'consult--source-workspace)))
-
-  (transient-define-prefix tabspaces-transient ()
-    "TabSpaces: Manage workspaces and buffers"
-    [["Buffer Management"
-      ("k" "Kill buffers & close ws" tabspaces-kill-buffers-close-workspace)
-      ("c" "Clear buffers" tabspaces-clear-buffers)
-      ("d" "Remove ted buffer" tabspaces-remove-selected-buffer)]
-     ["Workspace Management"
-      ("w" "Close workspace" tabspaces-close-workspace)
-      ("s" "Switch/Create workspace" tabspaces-switch-or-create-workspace)
-      ("o" "Open/Create project/ws" tabspaces-open-or-create-project-and-workspace)]
-     ["Buffer Navigation"
-      ("b" "Switch buffer" tabspaces-switch-to-buffer)
-      ("t" "Switch buffer & tab" tabspaces-switch-buffer-and-tab)]])
+  
 #+end_src
 
 ** org gtd
@@ -793,25 +780,6 @@ some configuration for debugging slides
     ;;     (add-hook 'trident-mode-hook 'steal-slime-keys-for-trident!)
 #+end_src
  
-** GIFS
-#+begin_src emacs-lisp
-  (use-package gif-screencast
-    :ensure t
-    :config
-    (setq gif-screencast-program "flameshot_bash")
-    (setq gif-screencast-args '()))
-    (use-package keycast)
-#+end_src
-
-#+RESULTS:
-*** Flameshot Bash Script
-#+PROPERTY: header-args:bash :tangle ~/bin/flameshot_bash
-#+PROPERTY: header-args:bash :shebang 
-#+begin_src bash :tangle ~/bin/flameshot_bash :shebang "#!/bin/bash"
-  flameshot full -r>"$1"
-#+end_src
-#+RESULTS:
-
 ** web
 #+begin_src emacs-lisp
   (use-package impatient-mode
