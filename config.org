@@ -687,38 +687,39 @@ keybinding maps like magit
 ** tabspaces
 like perps-mode, perps.el and perspective.el but simpler and utilizing the built in tab-bar-mode
 #+begin_src emacs-lisp
-  (use-package tabspaces
-    :config
-    (setf tabspaces-use-filtered-buffers-as-default t
-          tabspaces-default-tab "Default"
-          tabspaces-remove-to-default t
-          tabspaces-include-buffers '("*scratch*")
-          tabspaces-initialize-project-with-todo t
-          tabspaces-todo-file-name "project-todo.org"
-          tabspaces-session t)
-    (tabspaces-mode 1)
-    ;; Filter Buffers for Consult-Buffer
+    (use-package tabspaces
+      :config
+      (setf tabspaces-use-filtered-buffers-as-default t
+            tabspaces-default-tab "Default"
+            tabspaces-remove-to-default t
+            tabspaces-include-buffers '("*scratch*")
+            tabspaces-initialize-project-with-todo t
+            tabspaces-todo-file-name "project-todo.org"
+            tabspaces-session t)
+      (tabspaces-mode 1)
+      ;; Filter Buffers for Consult-Buffer
 
-    (with-eval-after-load 'consult
-      ;; hide full buffer list (still available with "b" prefix)
-      (consult-customize consult--source-buffer :hidden t :default nil)
-      ;; set consult-workspace buffer list
-      (defvar consult--source-workspace
-        (list :name     "Workspace Buffers"
-              :narrow   ?w
-              :history  'buffer-name-history
-              :category 'buffer
-              :state    #'consult--buffer-state
-              :default  t
-              :items    (lambda () (consult--buffer-query
-                                    :predicate #'tabspaces--local-buffer-p
-                                    :sort 'visibility
-                                    :as #'buffer-name)))
+      (with-eval-after-load 'consult
+        ;; hide full buffer list (still available with "b" prefix)
+        (consult-customize consult--source-buffer :hidden t :default nil)
+        ;; set consult-workspace buffer list
+        (defvar consult--source-workspace
+          (list :name     "Workspace Buffers"
+                :narrow   ?w
+                :history  'buffer-name-history
+                :category 'buffer
+                :state    #'consult--buffer-state
+                :default  t
+                :items    (lambda () (consult--buffer-query
+                                      :predicate #'tabspaces--local-buffer-p
+                                      :sort 'visibility
+                                      :as #'buffer-name)))
 
-        "Set workspace buffer list for consult-buffer.")
+          "Set workspace buffer list for consult-buffer.")
 
-      (add-to-list 'consult-buffer-sources 'consult--source-workspace)))
-  
+        (add-to-list 'consult-buffer-sources 'consult--source-workspace))
+      :bind (([remap tabspaces-switch-to-buffer] . consult-buffer)))
+    
 #+end_src
 
 ** org gtd
