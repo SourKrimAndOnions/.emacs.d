@@ -47,8 +47,6 @@ bootstrapping elpaca
       (load "./elpaca-autoloads")))
   (add-hook 'after-init-hook #'elpaca-process-queues)
   (elpaca `(,@elpaca-order))
-
-
 #+end_src
 ** early init
 
@@ -112,7 +110,7 @@ bootstrapping elpaca
     :ensure nil
     :config
     (save-place-mode 1) ; visit files at same position
-    (delete-selection-mode 1) ; Actions on active region will delete
+    (delete-selection-mode -1) ; Actions on active region will delete called with 1
     (show-paren-mode 1)
     (setopt
      ;; https://www.reddit.com/r/emacs/comments/kgv4fj/problems_in_org_trello_error_requestcurlsync/
@@ -195,14 +193,22 @@ bootstrapping elpaca
   ;; See yasnippet's config and snippet in
   ;; ~/.emacs.d/etc/yasnippet/emacs-lisp-mode/package
   (use-package autoinsert
-    :ensure nil
-    :config
-    (setq auto-insert-query nil)
-    (push '(emacs-lisp-mode . (lambda () (require 'yasnippet)
-                                (insert "<p")
-                                (call-interactively #'yas-expand)))
-          auto-insert-alist)
-    (auto-insert-mode t))
+  :ensure nil
+  :config
+  (setq auto-insert-query nil)
+  (setq auto-insert-alist
+        `((emacs-lisp-mode . (lambda () 
+                              (require 'yasnippet)
+                              (insert "<p")
+                              (call-interactively #'yas-expand)))
+          (csharp-mode . (lambda ()
+                          (require 'yasnippet)
+                          (if (string-match-p "I[A-Z].*\\.cs$" (buffer-name))
+                              (insert "<i")
+                            (insert "<"
+                                  (completing-read "Type (c)lass/(r)ecord: " '("c" "r") nil t)))
+                          (call-interactively #'yas-expand)))))
+  (auto-insert-mode t))
 
   (use-package savehist
     :ensure nil
@@ -211,10 +217,6 @@ bootstrapping elpaca
   (use-package s
       :ensure t
       :demand t)
-
-  (use-package org
-    :ensure t
-    :demand t)
 
   (use-package transient
       :ensure t
@@ -343,81 +345,6 @@ bootstrapping elpaca
     (add-to-list 'eshell-path-env-list "~/.local/bin/"))
 #+end_src
 * packages
-** Keep .emacs.d Clean
-Ensuring a clean .emacs.d directory by relocating transient files.
-I don't want a bunch of transient files showing up as untracked in the Git repo so I move them all to another location.
-
-#+begin_src emacs-lisp
-  ;; (use-package no-littering
-  ;;   :ensure t
-  ;;   :init
-  ;;   ;; Set up no-littering early in initialization
-  ;;   (require 'no-littering)
-
-  ;;   :config
-  ;;   ;; Keep customization settings in a separate file
-  ;;   (setq custom-file (no-littering-expand-etc-file-name "custom.el"))
-  ;;   (load custom-file :noerror :nomessage)
-
-  ;;   ;; Configure auto-save and backup locations
-  ;;   (setq auto-save-file-name-transforms
-  ;;         `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
-
-  ;;   ;; Store lock files in a separate directory
-  ;;   (setq lock-file-name-transforms
-  ;;         `((".*" ,(no-littering-expand-var-file-name "lock-files/") t)))
-
-  ;;   ;; Ensure directories exist
-  ;;   (make-directory (no-littering-expand-var-file-name "auto-save/") :parents)
-  ;;   (make-directory (no-littering-expand-var-file-name "lock-files/") :parents)
-
-  ;;   ;; Backup settings
-  ;;   (setq backup-directory-alist
-  ;;         `(("." . ,(no-littering-expand-var-file-name "backup/"))))
-  ;;   (setq backup-by-copying t)      ; Don't delink hardlinks
-  ;;   (setq delete-old-versions t)    ; Clean up backup files
-  ;;   (setq version-control t)        ; Use version numbers on backups
-  ;;   (setq kept-new-versions 5)      ; Keep 5 newest versions
-  ;;   (setq kept-old-versions 2)      ; Keep 2 oldest versions
-  ;;   (setq make-backup-files nil)    ; Disable backup files
-  ;;   (setq vc-make-backup-files nil) ; Don't backup version controlled files
-
-  ;;   ;; Save history and places
-  ;;   (setq savehist-file (no-littering-expand-var-file-name "savehist.el"))
-  ;;   (setq save-place-file (no-littering-expand-var-file-name "save-place.el"))
-  ;;   ;; Store auto-save-list files in var directory
-  ;;   (setq auto-save-list-file-prefix 
-  ;;         (no-littering-expand-var-file-name "auto-save-list/.saves-"))
-
-  ;;   ;; Keep transient files in var directory
-  ;;   (setq transient-history-file 
-  ;;         (no-littering-expand-var-file-name "transient/history.el"))
-  ;;   (setq transient-levels-file 
-  ;;         (no-littering-expand-var-file-name "transient/levels.el"))
-  ;;   (setq transient-values-file 
-  ;;         (no-littering-expand-var-file-name "transient/values.el"))
-
-  ;;   ;; Persist recentf list between sessions
-  ;;   (setq recentf-save-file 
-  ;;         (no-littering-expand-var-file-name "recentf"))
-
-  ;;   ;; Store bookmarks file in etc directory
-  ;;   (setq bookmark-default-file 
-  ;;         (no-littering-expand-etc-file-name "bookmarks")))
-
-  ;; ;; Enable save-place-mode to remember cursor position
-  ;; (save-place-mode 1)
-
-  ;; ;; Enable savehist-mode to persist history
-  ;; (savehist-mode 1)
-
-  ;; ;; Enable recentf-mode to track recently opened files
-  ;; (recentf-mode 1)
-#+end_src
- 
-#+RESULTS:
- 
-*Guix Packages*
 ** Load custom lisp
 I've got a folder of custom Emacs Lisp libraries which must be added to the load path.
 #+begin_src emacs-lisp
@@ -483,37 +410,40 @@ where you browse code is immennsely freeing and you don't break you
 flow as much. On top of that you have all of your code search,
 navigation etc. available since you're in your editor.
 #+begin_src emacs-lisp
-  (use-package magit
-    :config
-    (setf magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1
-          magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1
-          magit-save-repository-buffers 'dontask
-          ediff-window-setup-function 'ediff-setup-windows-plain)
-    :bind (("C-c v" . #'my-git-commands)))
+    (use-package magit
+      :config
+      (setf magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1
+            magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1
+            magit-save-repository-buffers 'dontask
+            ediff-window-setup-function 'ediff-setup-windows-plain)
+      :bind (("C-c v" . #'my-git-commands)))
 
-  (use-package magit-todos)
+    (use-package magit-todos)
 
-  (use-package conventional-commit
-    :ensure (conventional-commit
-               :type git
-               :host github
-               :repo "akirak/conventional-commit.el")
-    :hook (git-commit-mode . conventional-commit-setup))
-  (use-package git-timemachine
-    :ensure t)
+    (use-package conventional-commit
+      :ensure (conventional-commit
+                 :type git
+                 :host github
+                 :repo "akirak/conventional-commit.el")
+      :hook (git-commit-mode . conventional-commit-setup))
+  
+    (use-package git-timemachine
+      :ensure t)
+
   (use-package git-cliff
-    :config
-    (setf git-cliff-executable "~/.cargo/bin/git-cliff"))
-  (transient-define-prefix my-git-commands ()
-    "A transient for common git operations."
-    ["Git Commands"
-     ["Magit"
-      ("g" "Status" magit-status)
-      ("b" "blame" magit-blame-addition)
-      ("C" "Clone" magit-clone)
-      ]
-     ["Timemachine"
-      ("t" "Toggle Timemachine" git-timemachine-toggle)]])
+      :config
+      (setf git-cliff-executable "~/.cargo/bin/git-cliff"))
+    
+    (transient-define-prefix my-git-commands ()
+      "A transient for common git operations."
+      ["Git Commands"
+       ["Magit"
+        ("g" "Status" magit-status)
+        ("b" "blame" magit-blame-addition)
+        ("C" "Clone" magit-clone)
+        ]
+       ["Timemachine"
+        ("t" "Toggle Timemachine" git-timemachine-toggle)]])
 #+end_src
 
 ** Puni (structural editing - sexp / balanced expressions)
@@ -548,112 +478,114 @@ navigation etc. available since you're in your editor.
   (use-package vertico
     :config
     (vertico-mode))
-    
-      (use-package consult
-      :bind (([remap switch-to-buffer] . consult-buffer))
-      :after vertico)
 
-    (use-package vertico-prescient
-      :after prescient
-      :config
-      (vertico-prescient-mode t))
+  (use-package consult
+    :bind (([remap switch-to-buffer] . consult-buffer)
+           ([remap project-find-regexp] . consult-git-grep))
+    :after vertico)
+
+  (use-package vertico-prescient
+    :after prescient
+    :config
+    (vertico-prescient-mode t))
 
     ;;; Completion at point
 
-    (use-package corfu
-      :config
-      (setopt corfu-cycle t)
-      (setopt corfu-auto t)
-      (setopt corfu-separator ?\s)          ; ?\s is " "
-      (setopt tab-always-indent 'complete)
-      (setopt corfu-min-width 30)
-      (keymap-set corfu-map "RET" nil) ; aborts after newline
-      (global-corfu-mode 1))
+  (use-package corfu
+    :config
+    (setopt corfu-cycle t)
+    (setopt corfu-auto t)
+    (setopt corfu-separator ?\s)          ; ?\s is " "
+    (setopt tab-always-indent 'complete)
+    (setopt corfu-min-width 30)
+    (keymap-set corfu-map "RET" nil) ; aborts after newline
+    (global-corfu-mode 1))
 
-    (use-package cape
-      :init
-      (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-      (add-to-list 'completion-at-point-functions #'cape-file)
-      (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-      (add-to-list 'completion-at-point-functions #'cape-elisp-block))
+  (use-package cape
+    :init
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-block))
 
-    (use-package consult-lsp
-        :ensure t)
+  (use-package consult-lsp
+    :ensure t)
 
-    (use-package consult-flycheck
-        :ensure t)
+  (use-package consult-flycheck
+    :ensure t)
 
-    (use-package lsp-mode
-        :commands (lsp lsp-deferred)
-        :hook ((csharp-mode . lsp-deferred)
-               ;; (fsharp-mode . lsp-deferred)
-               )
-        :config
-        (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
-        (setq lsp-prefer-capf t)
-        (transient-define-prefix my/lsp-transient ()
-        "LSP commands"
-            [["Actions"
-              ("d" "Definition" lsp-find-definition)
-              ("?" "References" lsp-find-references)
-              ("i" "Implementation" lsp-find-implementation)
-              ("t" "Type Definition" lsp-find-type-definition)
-              ("s" "Symbol" consult-lsp-symbols)
-              ("f" "Format Buffer" lsp-format-buffer)
-              ("a" "Code Action" lsp-execute-code-action)]
-             ["Diagnostics"
-              ("n" "Next Diagnostic" flycheck-next-error)
-              ("p" "Previous Diagnostic" flycheck-previous-error)
-              ("l" "List Diagnostics" consult-flymake)]
-             ["Workspace"
-              ("R" "Restart Workspace" lsp-restart-workspace)
-              ("q" "Shutdown Workspace" lsp-shutdown-workspace)
-              ("r" "Rename Symbol" lsp-rename)]
-             ["Other"
-              ("m" "Toggle LSP Mode" lsp-mode)]]))
+  (use-package lsp-mode
+    :commands (lsp lsp-deferred)
+    :hook ((csharp-mode . lsp-deferred)
+           ;; (fsharp-mode . lsp-deferred)
+           )
+    :config
+    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+    (setq lsp-prefer-capf t)
+    (transient-define-prefix my/lsp-transient ()
+      "LSP commands"
+      [["Actions"
+        ("d" "Definition" lsp-find-definition)
+        ("?" "References" lsp-find-references)
+        ("i" "Implementation" lsp-find-implementation)
+        ("t" "Type Definition" lsp-find-type-definition)
+        ("s" "Symbol" consult-lsp-symbols)
+        ("f" "Format Buffer" lsp-format-buffer)
+        ("a" "Code Action" lsp-execute-code-action)]
+       ["Diagnostics"
+        ("n" "Next Diagnostic" flycheck-next-error)
+        ("p" "Previous Diagnostic" flycheck-previous-error)
+        ("l" "List Diagnostics" consult-flymake)]
+       ["Workspace"
+        ("R" "Restart Workspace" lsp-restart-workspace)
+        ("q" "Shutdown Workspace" lsp-shutdown-workspace)
+        ("r" "Rename Symbol" lsp-rename)]
+       ["Other"
+        ("m" "Toggle LSP Mode" lsp-mode)]]))
 
 
-      ;; Make sure orderless works well with LSP
-    (use-package orderless
+  ;; Make sure orderless works well with LSP
+  (use-package orderless
     :config
     (setopt completion-styles '(orderless basic))
     (setopt completion-category-overrides '((file (styles basic partial-completion)))))
-      (use-package sly
-        :ensure t)
+  (use-package sly
+    :ensure t)
 
-      (use-package sharper
-        :bind (("C-c d" . #'sharper-main-transient)))
+  (use-package sharper
+    :bind (("C-c d" . #'sharper-main-transient)))
 
-      (use-package fsharp-mode)
-      (add-hook 'web-mode-hook 'my-web-mode-hook)
-      (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
-      (use-package eglot-fsharp)
-      ;; SLIME-Cape integration
-      (use-package yasnippet-capf
-        :ensure t
-        :after (cape yasnippet)
-        :config
-        (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+  (use-package fsharp-mode)
+  (add-hook 'web-mode-hook 'my-web-mode-hook)
+  (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
+  (use-package eglot-fsharp)
+  ;; SLIME-Cape integration
+  (use-package yasnippet-capf
+    :ensure t
+    :after (cape yasnippet)
+    :config
+    (add-to-list 'completion-at-point-functions #'yasnippet-capf))
 
-      ;; Configure hippie-expand with YASnippet
-      (use-package yasnippet
-        :ensure t
-        :config
-        (yas-global-mode 1)
-        (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
-        (setq hippie-expand-try-functions-list
-              (cons 'yas-hippie-try-expand
-                    (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
+  ;; Configure hippie-expand with YASnippet
+  (use-package yasnippet
+    :ensure t
+    :config
+    (yas-global-mode 1)
+    (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
+    (setq hippie-expand-try-functions-list
+          (cons 'yas-hippie-try-expand
+                (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
 
-
-      ;; Dabbrev configuration
-      (use-package dabbrev
-        :ensure nil  ; built-in package
-        :config
-        (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
-        (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
-        (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
-        :bind ([remap dabbrev-expand] . hippie-expand))
+  (use-package yasnippet-snippets
+    :after yasnippet)
+  ;; Dabbrev configuration
+  (use-package dabbrev
+    :ensure nil  ; built-in package
+    :config
+    (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
+    (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
+    (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
+    :bind ([remap dabbrev-expand] . hippie-expand))
 #+end_src
 
 #+RESULTS:
@@ -687,64 +619,61 @@ keybinding maps like magit
 ** tabspaces
 like perps-mode, perps.el and perspective.el but simpler and utilizing the built in tab-bar-mode
 #+begin_src emacs-lisp
-    (use-package tabspaces
-      :config
-      (setf tabspaces-use-filtered-buffers-as-default t
-            tabspaces-default-tab "Default"
-            tabspaces-remove-to-default t
-            tabspaces-include-buffers '("*scratch*")
-            tabspaces-initialize-project-with-todo t
-            tabspaces-todo-file-name "project-todo.org"
-            tabspaces-session t)
-      (tabspaces-mode 1)
-      ;; Filter Buffers for Consult-Buffer
+  (use-package tabspaces
+    :config
+    (setf tabspaces-default-tab "Default"
+          tabspaces-remove-to-default t
+          tabspaces-include-buffers '("*scratch*")
+          tabspaces-initialize-project-with-todo t
+          tabspaces-todo-file-name "project-todo.org"
+          tabspaces-session t)
+    ;; Filter Buffers for Consult-Buffer
+    (tabspaces-mode 1)
+    (with-eval-after-load 'consult
+      ;; hide full buffer list (still available with "b" prefix)
+      (consult-customize consult--source-buffer :hidden t :default nil)
+      ;; set consult-workspace buffer list
+      (defvar consult--source-workspace
+        (list :name     "Workspace Buffers"
+              :narrow   ?w
+              :history  'buffer-name-history
+              :category 'buffer
+              :state    #'consult--buffer-state
+              :default  t
+              :items    (lambda () (consult--buffer-query
+                                    :predicate #'tabspaces--local-buffer-p
+                                    :sort 'visibility
+                                    :as #'buffer-name)))
 
-      (with-eval-after-load 'consult
-        ;; hide full buffer list (still available with "b" prefix)
-        (consult-customize consult--source-buffer :hidden t :default nil)
-        ;; set consult-workspace buffer list
-        (defvar consult--source-workspace
-          (list :name     "Workspace Buffers"
-                :narrow   ?w
-                :history  'buffer-name-history
-                :category 'buffer
-                :state    #'consult--buffer-state
-                :default  t
-                :items    (lambda () (consult--buffer-query
-                                      :predicate #'tabspaces--local-buffer-p
-                                      :sort 'visibility
-                                      :as #'buffer-name)))
+        "Set workspace buffer list for consult-buffer.")
 
-          "Set workspace buffer list for consult-buffer.")
+      (add-to-list 'consult-buffer-sources 'consult--source-workspace)))
 
-        (add-to-list 'consult-buffer-sources 'consult--source-workspace))
-      :bind (([remap tabspaces-switch-to-buffer] . consult-buffer)))
-    
 #+end_src
 
 ** org gtd
 #+begin_src emacs-lisp
-  (use-package org-gtd
-    :config
-    (setf org-gtd-update-ack "3.0.0")
-    (setf org-gtd-directory "~/Dropbox/org/")
-    (org-gtd-mode 1)
-    (transient-define-prefix my/org-gtd-transient-menu ()
-      "Org GTD"
-      ["Org GTD Commands"
-       ("c" "Capture Task" org-capture)
-       ("p" "Process Inbox" org-gtd-process-inbox)
-       ("e" "Engage" org-gtd-engage)
-       ("r" "organize" org-gtd-organize)
-       ])
-    (setf org-capture-templates
-          '(("i" "Inbox" entry (file "~/Dropbox/org/inbox.org")
-             "* %?\n%U\n" :prepend t)
-            ("t" "Task" entry (file "~/Dropbox/org/inbox.org")
-             "* TODO %?\n%U\n" :prepend t)
-            ;; Add other templates here
-            ))
-    :bind (("C-c n" . my/org-gtd-transient-menu)))
+    (use-package org-gtd
+      :config
+      (setf org-gtd-directory "~/Dropbox/org/")
+      (org-gtd-mode 1)
+      (transient-define-prefix my/org-gtd-transient-menu ()
+        "Org GTD"
+        ["Org GTD Commands"
+         ("c" "Capture Task" org-capture)
+         ("p" "Process Inbox" org-gtd-process-inbox)
+         ("e" "Engage" org-gtd-engage)
+         ("r" "organize" org-gtd-organize)
+         ])
+      (setf org-capture-templates
+            '(("i" "Inbox" entry (file "~/Dropbox/org/inbox.org")
+               "* %?\n%U\n" :prepend t)
+              ("t" "Task" entry (file "~/Dropbox/org/inbox.org")
+               "* TODO %?\n%U\n" :prepend t)
+              ;; Add other templates here
+              ))
+      :bind (("C-c n" . my/org-gtd-transient-menu))
+      :init (setf org-gtd-update-ack "3.0.0"))
 #+end_src
 
 #+RESULTS:
@@ -823,9 +752,7 @@ makes grep buffers writeable.
     :config
     (default-text-scale-mode))
   (use-package moc
-    :ensure (moc
-             :host github
-             :repo "positron-solutions/moc"))
+    :ensure t)
 #+end_src
 some configuration for debugging slides 
 #+begin_src emacs-lisp
@@ -845,29 +772,31 @@ some configuration for debugging slides
     (pdf-tools-install))
 #+end_src
 ** Lisps
+
 *** Emacs Lisp
 #+begin_src  emacs-lisp
-  ;; match da pairs
-  (electric-pair-mode 1)
-  (add-hook 'org-mode-hook (lambda ()
-                             (setq-local electric-pair-inhibit-predicate
-                                         `(lambda (c)
-                                            (if (char-equal c ?<) t (,electric-pair-inhibit-predicate c))))))
+    ;; match da pairs
+    (electric-pair-mode 1)
+    (add-hook 'org-mode-hook (lambda ()
+                               (setq-local electric-pair-inhibit-predicate
+                                           `(lambda (c)
+                                              (if (char-equal c ?<) t (,electric-pair-inhibit-predicate c))))))
 
-  (use-package aggressive-indent)
-  ;; Enable paredit for Common Lisp programming
-  (add-hook 'lisp-mode-hook #'aggressive-indent-mode)
+    (use-package aggressive-indent)
+    ;; Enable paredit for Common Lisp programming
+    (add-hook 'lisp-mode-hook #'aggressive-indent-mode)
 
-  ;; Enable paredit for Emacs Lisp programming
-
+    ;; Enable paredit for Emacs Lisp programming
   (defun my-setup-check-parens ()
-      (add-hook 'before-save-hook
-                #'check-parens))
-  (add-hook 'emacs-lisp-mode-hook #'my-setup-check-parens)
+    "Set up check-parens, but only in =emacs-lisp-mode'."
+    (when (derived-mode-p 'emacs-lisp-mode)
+      (add-hook 'before-save-hook #'check-parens nil t)))
 
-  (use-package eros
-    :config
-    (setf eros-mode 1))
+  (add-hook 'emacs-lisp-mode-hook #'my-setup-check-parens)
+  
+    (use-package eros
+      :config
+      (setf eros-mode 1))
 #+end_src
 ** Common Lisp
 #+begin_src emacs-lisp
@@ -1000,6 +929,23 @@ vertico package of prescient.
 #+RESULTS:
 : [nil 26519 33959 746874 nil elpaca-process-queues nil nil 880000 nil]
 
+** auth
+integrate 1password with emacs auth sources
+#+begin_src emacs-lisp
+      (use-package auth-source-1password
+        :config (auth-source-1password-enable))
+#+end_src
+
+
+** Gptel
+#+begin_src emacs-lisp
+  (require 'demo-gptel-config)
+#+end_src
+
+#+RESULTS:
+: [nil 26534 15895 651388 nil elpaca-process-queues nil nil 41000 nil]
+
+
 * Finans
 #+begin_src emacs-lisp
   (use-package ledger-mode
@@ -1059,5 +1005,10 @@ vertico package of prescient.
      <<packages>>
   ))
 #+end_src
+** custom elisp
+#+begin_src emacs-lisp
+  (require 'compare-files)
+  (require 'csharp-namespace)
+  
+#+end_src
 
- 
