@@ -1,0 +1,339 @@
+:PROPERTIES:
+:header-args: :var host="https://dev.azure.com"  :pretty :curl -k :max-time 90 :var organization="cleveras" :var project="Clever" :var team="App Development" :var auth=authToken()
+:END:
+
+#+begin_src elisp
+  (list host organization project team auth)
+#+end_src
+
+#+RESULTS:
+| https://dev.azure.com | cleveras | Clever | App Development | "OjlkODEyYnBlNXpRQTZ0VUsyU2lLVEFrR1RQaUo4UlpHbndWc0gxTWFkOFJ2dHREckNZeklKUVFK |
+
+
+
+#+BEGIN_SRC http
+    POST ${host}/${organization}/${project}/App%20Team/_apis/wit/wiql?api-version=7.2-preview.2
+    Authorization: Basic ${auth}
+    Content-Type: application/json
+
+    {
+      "query": "SELECT [System.Id], [System.Title], [System.State] FROM WorkItems WHERE [System.AssignedTo] = @Me AND [System.State] IN ('New', 'Active', 'In Progress', 'To Do')"
+    }
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+{
+  "queryType": "flat",
+  "queryResultType": "workItem",
+  "asOf": "2025-02-16T12:49:55.777Z",
+  "columns": [
+    {
+      "referenceName": "System.Id",
+      "name": "ID",
+      "url": "https://dev.azure.com/cleveras/_apis/wit/fields/System.Id"
+    },
+    {
+      "referenceName": "System.Title",
+      "name": "Title",
+      "url": "https://dev.azure.com/cleveras/_apis/wit/fields/System.Title"
+    },
+    {
+      "referenceName": "System.State",
+      "name": "State",
+      "url": "https://dev.azure.com/cleveras/_apis/wit/fields/System.State"
+    }
+  ],
+  "workItems": [
+    {
+      "id": 32675,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/32675"
+    },
+    {
+      "id": 48931,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/48931"
+    },
+    {
+      "id": 48933,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/48933"
+    },
+    {
+      "id": 49830,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/49830"
+    },
+    {
+      "id": 49831,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/49831"
+    },
+    {
+      "id": 49832,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/49832"
+    },
+    {
+      "id": 49833,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/49833"
+    },
+    {
+      "id": 53818,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/53818"
+    },
+    {
+      "id": 53821,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/53821"
+    },
+    {
+      "id": 57201,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/57201"
+    },
+    {
+      "id": 60139,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60139"
+    },
+    {
+      "id": 60140,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60140"
+    },
+    {
+      "id": 60239,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60239"
+    },
+    {
+      "id": 60240,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60240"
+    },
+    {
+      "id": 60241,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60241"
+    },
+    {
+      "id": 60242,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60242"
+    },
+    {
+      "id": 60243,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60243"
+    },
+    {
+      "id": 60244,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60244"
+    },
+    {
+      "id": 60245,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60245"
+    },
+    {
+      "id": 60246,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60246"
+    },
+    {
+      "id": 60247,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60247"
+    },
+    {
+      "id": 60248,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60248"
+    },
+    {
+      "id": 60249,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60249"
+    },
+    {
+      "id": 60250,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60250"
+    },
+    {
+      "id": 60251,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60251"
+    },
+    {
+      "id": 60252,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60252"
+    },
+    {
+      "id": 60253,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60253"
+    },
+    {
+      "id": 60254,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60254"
+    },
+    {
+      "id": 60255,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60255"
+    },
+    {
+      "id": 60256,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60256"
+    },
+    {
+      "id": 60257,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60257"
+    },
+    {
+      "id": 60258,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60258"
+    },
+    {
+      "id": 60259,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60259"
+    },
+    {
+      "id": 60262,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/60262"
+    },
+    {
+      "id": 62819,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/62819"
+    },
+    {
+      "id": 62821,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/62821"
+    },
+    {
+      "id": 62850,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/62850"
+    },
+    {
+      "id": 63566,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/63566"
+    },
+    {
+      "id": 64729,
+      "url": "https://dev.azure.com/cleveras/78cf97e9-651e-4c1b-b902-2dedac3c265f/_apis/wit/workItems/64729"
+    }
+  ]
+}
+#+end_example
+
+#+BEGIN_SRC http
+  GET ${host}/${organization}/_apis/projects?api-version=7.1
+  Authorization: Basic ${auth}
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+{
+  "count": 11,
+  "value": [
+    {
+      "id": "59bf73a5-e1f2-47f8-a0b9-fe4c85b15cf6",
+      "name": "Clever.RemoteStartStop",
+      "description": "Repository for the remote start engine used to manage charges from the app.",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/59bf73a5-e1f2-47f8-a0b9-fe4c85b15cf6",
+      "state": "wellFormed",
+      "revision": 302,
+      "visibility": "private",
+      "lastUpdateTime": "2020-12-04T14:26:35.523Z"
+    },
+    {
+      "id": "c38659e7-5998-4f8f-837c-914fc180b7fc",
+      "name": "Clever.web",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/c38659e7-5998-4f8f-837c-914fc180b7fc",
+      "state": "wellFormed",
+      "revision": 122,
+      "visibility": "private",
+      "lastUpdateTime": "2019-11-01T12:11:20.427Z"
+    },
+    {
+      "id": "ca661b4f-9eb9-4fd9-bcc9-7d840b69c0b6",
+      "name": "Clever.Data",
+      "description": "The main project for Clever Data. This project holds everything related to Data Warehouse and Data Environment. Data Analytics databricks deployment and src code is also located here. Some testing of deployment of PowerBI reports are also located here.",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/ca661b4f-9eb9-4fd9-bcc9-7d840b69c0b6",
+      "state": "wellFormed",
+      "revision": 671,
+      "visibility": "private",
+      "lastUpdateTime": "2024-04-18T07:47:23.843Z"
+    },
+    {
+      "id": "78cf97e9-651e-4c1b-b902-2dedac3c265f",
+      "name": "Clever",
+      "description": "The main Clever repository. This project holds various Clever applications such as CPMS, NOC Tools, API's etc.",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/78cf97e9-651e-4c1b-b902-2dedac3c265f",
+      "state": "wellFormed",
+      "revision": 702,
+      "visibility": "private",
+      "lastUpdateTime": "2025-01-17T13:27:48.293Z"
+    },
+    {
+      "id": "cfeccddf-cffa-4be9-afe3-1e74649bafcf",
+      "name": "Clever.Libraries",
+      "description": "A collection of libraries used in the various Clever applications.",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/cfeccddf-cffa-4be9-afe3-1e74649bafcf",
+      "state": "wellFormed",
+      "revision": 203,
+      "visibility": "private",
+      "lastUpdateTime": "2020-07-02T13:23:45.657Z"
+    },
+    {
+      "id": "136eb211-1cdc-4852-b9c4-5fba56bae06b",
+      "name": "Clever.DevOps",
+      "description": "DevOps automation and extensions",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/136eb211-1cdc-4852-b9c4-5fba56bae06b",
+      "state": "wellFormed",
+      "revision": 549,
+      "visibility": "private",
+      "lastUpdateTime": "2022-08-16T09:04:32.083Z"
+    },
+    {
+      "id": "9e4ef4cb-6291-48b3-8c8a-5e7bf383795b",
+      "name": "Clever.PowerMarket",
+      "description": "A collections of solutions related to power market data (f.ex. pricing and emissions).",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/9e4ef4cb-6291-48b3-8c8a-5e7bf383795b",
+      "state": "wellFormed",
+      "revision": 463,
+      "visibility": "private",
+      "lastUpdateTime": "2021-10-12T11:52:02.563Z"
+    },
+    {
+      "id": "13d53bd7-6410-4936-b3df-5a8d6eeb03a4",
+      "name": "Clever.CPMS",
+      "description": "The main project for CPMS. This project holds everything related to CPMS.",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/13d53bd7-6410-4936-b3df-5a8d6eeb03a4",
+      "state": "wellFormed",
+      "revision": 703,
+      "visibility": "private",
+      "lastUpdateTime": "2025-01-29T11:06:29.17Z"
+    },
+    {
+      "id": "83d5d0c8-6206-4b6f-988e-af0b8fe8ae52",
+      "name": "Clever.Api",
+      "description": "Project includes API's across the applicaiton landscape.\nThis includes the External API and the Internal API.",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/83d5d0c8-6206-4b6f-988e-af0b8fe8ae52",
+      "state": "wellFormed",
+      "revision": 342,
+      "visibility": "private",
+      "lastUpdateTime": "2021-02-24T07:27:04.203Z"
+    },
+    {
+      "id": "7d21f112-4f3d-43df-ab93-1964a838bcd6",
+      "name": "Clever.DBC",
+      "description": "BusinessCentral",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/7d21f112-4f3d-43df-ab93-1964a838bcd6",
+      "state": "wellFormed",
+      "revision": 404,
+      "visibility": "private",
+      "lastUpdateTime": "2021-09-22T07:44:24.597Z"
+    },
+    {
+      "id": "6f01d07d-cb7e-4952-982a-45d28668dd6a",
+      "name": "Clever.MobileApp",
+      "url": "https://dev.azure.com/cleveras/_apis/projects/6f01d07d-cb7e-4952-982a-45d28668dd6a",
+      "state": "wellFormed",
+      "revision": 670,
+      "visibility": "private",
+      "lastUpdateTime": "2024-04-12T11:47:35.207Z"
+    }
+  ]
+}
+#+end_example
+
+
+* auth
+:PROPERTIES:
+:header-args:
+:END:
+#+name:authToken
+#+begin_src elisp
+  (base64-encode-string (concat ":" "youtoken") t)
+#+end_src
+
