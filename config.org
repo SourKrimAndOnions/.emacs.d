@@ -679,6 +679,16 @@ like perps-mode, perps.el and perspective.el but simpler and utilizing the built
 #+RESULTS:
 : [nil 26491 37845 593845 nil elpaca-process-queues nil nil 569000 nil]
 
+** org-roam
+org roam is a lot like obsidian which all the young one rave about
+these days.
+#+begin_src emacs-lisp
+  (use-package org-roam
+    :config
+    (setf org-roam-directory "~/Dropbox/org/roam/"
+          org-roam-db-autosync-mode t))
+#+end_src
+
 ** Garbage Collector Magic Hack
 
 #+begin_src emacs lisp
