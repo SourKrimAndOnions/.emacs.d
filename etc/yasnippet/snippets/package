@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# name: package
+# key: <p
+# --
+;;; ${1:feature-name$(file-name-base(buffer-name))}.el --- ${2:title$(mapconcat #'capitalize (string-split (yas-field-value 1) "-") " ")}  -*- lexical-binding: t; -*-
+
+(defgroup $1 nil "$2" :prefix '$1 :group '${3:group$(unless (or yas-moving-away-p yas-modified-p) (require 'finder) (completing-read "Finder keyword: " finder-known-keywords nil t))})
+
+${0:;; write some code.}
+
+(provide '$1)
+;;; $1.el ends here

@@ -1,0 +1,11 @@
+#+begin_src snippet
+# -*- mode: snippet -*-
+# name: interface
+# key: <i
+# --
+namespace ${1:`(file-name-directory-to-namespace)`};
+
+public interface ${2:`(file-name-base)`}
+{
+    $0
+}

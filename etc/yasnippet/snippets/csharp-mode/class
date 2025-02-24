@@ -1,0 +1,11 @@
+#+begin_src snippet
+# -*- mode: snippet -*-
+# name: class
+# key: <c
+# --
+namespace ${1:`(file-name-directory-to-namespace)`};
+
+public class ${2:`(file-name-base)`} ${3:}
+{
+    $0
+}

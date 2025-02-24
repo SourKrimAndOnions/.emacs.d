@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# name: record
+# key: <r
+# --
+namespace ${1:`(file-name-directory-to-namespace)`};
+
+public record ${2:`(file-name-base)`}(
+    $0
+);
