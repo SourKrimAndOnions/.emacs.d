@@ -9,7 +9,7 @@ professional work
 bootstrapping elpaca
 #+begin_src emacs-lisp
   ;;bootstrap copied from instructions
-  (defvar elpaca-installer-version 0.9)
+  (defvar elpaca-installer-version 0.10)
   (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
   (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
   (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
@@ -51,108 +51,108 @@ bootstrapping elpaca
 ** early init
 
 #+begin_src emacs-lisp :tangle ./early-init.el
-    ;; Package.el is not used with Elpaca
-    (setq package-enable-at-startup nil)
+  ;; Package.el is not used with Elpaca
+  (setq package-enable-at-startup nil)
 
-    ;; A package loading speed hack, restored after init
-    (setq file-name-handler-alist-old file-name-handler-alist)
-    (setq file-name-handler-alist nil)
+  ;; A package loading speed hack, restored after init
+  (setq file-name-handler-alist-old file-name-handler-alist)
+  (setq file-name-handler-alist nil)
 
-    ;; Use the no-littering style var directory for elisp native compile cache
+  ;; Use the no-littering style var directory for elisp native compile cache
   (when (fboundp 'startup-redirect-eln-cache)
     (startup-redirect-eln-cache
      (convert-standard-filename
-          (expand-file-name  "var/eln-cache/" user-emacs-directory))))
-  
-    (load-theme 'modus-vivendi t)
+      (expand-file-name  "var/eln-cache/" user-emacs-directory))))
+
+  (load-theme 'modus-operandi t)
 #+end_src
 
 ** performance
- 
+
 #+begin_src emacs-lisp
 
 
     ;; Right after Elpaca is available, we can require packages and evaluate
-  ;; expressiosn after they run, and the first few packages are configuring things
-  ;; that need to be set up prior to evaluating any use-package expressions or
-  ;; loading and configuring packages.
-  (elpaca elpaca-use-package              ; enables :elpaca keyword in use-package
-    (elpaca-use-package-mode)
-    (setq elpaca-use-package-by-default t))
+    ;; expressiosn after they run, and the first few packages are configuring things
+    ;; that need to be set up prior to evaluating any use-package expressions or
+    ;; loading and configuring packages.
+    (elpaca elpaca-use-package              ; enables :elpaca keyword in use-package
+      (elpaca-use-package-mode)
+      (setq elpaca-use-package-by-default t))
 
-  (elpaca no-littering
-    (require 'no-littering)
-    (setq custom-file (no-littering-expand-etc-file-name "custom.el")))
+    (elpaca no-littering
+      (require 'no-littering)
+      (setq custom-file (no-littering-expand-etc-file-name "custom.el")))
 
-  (elpaca auto-compile
-    (require 'auto-compile)
-    ;; Don't load outdated .elc files
-    (setopt load-prefer-newer t)
-    (setopt auto-compile-display-buffer nil)
-    ;; You will still get byte compile and you can open *Warnings* buffer
-    (setopt native-comp-async-report-warnings-errors 'silent)
-    (auto-compile-on-load-mode 1)
-    (auto-compile-on-save-mode 1))
+    (elpaca auto-compile
+      (require 'auto-compile)
+      ;; Don't load outdated .elc files
+      (setopt load-prefer-newer t)
+      (setopt auto-compile-display-buffer nil)
+      ;; You will still get byte compile and you can open *Warnings* buffer
+      (setopt native-comp-async-report-warnings-errors 'silent)
+      (auto-compile-on-load-mode 1)
+      (auto-compile-on-save-mode 1))
 
     (elpaca compat
       (require 'compat))
 
 
-  ;; This evaluation barrier blocks so that `use-package' expressions below will
-  ;; not try to use the `:elpaca' keyword before it's defined.
-  (elpaca-wait)
+    ;; This evaluation barrier blocks so that `use-package' expressions below will
+    ;; not try to use the `:elpaca' keyword before it's defined.
+    (elpaca-wait)
 
-  ;;; Built-in things
+    ;;; Built-in things
 
-  ;; `emacs' is a pseudo-package and just tidies up configuration of things that
-  ;; don't require loading
-  (use-package emacs
-    :ensure nil
-    :config
-    (save-place-mode 1) ; visit files at same position
-    (delete-selection-mode -1) ; Actions on active region will delete called with 1
-    (show-paren-mode 1)
-    (setopt
-     ;; https://www.reddit.com/r/emacs/comments/kgv4fj/problems_in_org_trello_error_requestcurlsync/
-     request-backend 'url-retrieve
-     frame-resize-pixelwise t
-     window-resize-pixelwise t
-     Info-scroll-prefer-subnodes t
-     comint-scroll-to-bottom-on-input t
-     delete-by-moving-to-trash t
-     use-short-answers t
-     create-lockfiles nil)
+    ;; `emacs' is a pseudo-package and just tidies up configuration of things that
+    ;; don't require loading
+    (use-package emacs
+      :ensure nil
+      :config
+      (save-place-mode 1) ; visit files at same position
+      (delete-selection-mode -1) ; Actions on active region will delete called with 1
+      (show-paren-mode 1)
+      (setopt
+       ;; https://www.reddit.com/r/emacs/comments/kgv4fj/problems_in_org_trello_error_requestcurlsync/
+       request-backend 'url-retrieve
+       frame-resize-pixelwise t
+       window-resize-pixelwise t
+       Info-scroll-prefer-subnodes t
+       comint-scroll-to-bottom-on-input t
+       delete-by-moving-to-trash t
+       use-short-answers t
+       create-lockfiles nil)
 
-    (let ((emacs-backup-dir (no-littering-expand-var-file-name "backups/.saves-")))
-      (setq backup-directory-alist
-            `((".*" . ,emacs-backup-dir)))
-      (setq auto-save-file-name-transforms
-            `((".*" ,emacs-backup-dir t)))
-      (setq auto-save-list-file-prefix
-            emacs-backup-dir)
-      (setq initial-scratch-message nil
-            initial-buffer-choice (no-littering-expand-var-file-name "scratch.el")
-            initial-major-mode 'emacs-lisp-mode))
+      (let ((emacs-backup-dir (no-littering-expand-var-file-name "backups/.saves-")))
+        (setq backup-directory-alist
+              `((".*" . ,emacs-backup-dir)))
+        (setq auto-save-file-name-transforms
+              `((".*" ,emacs-backup-dir t)))
+        (setq auto-save-list-file-prefix
+              emacs-backup-dir)
+        (setq initial-scratch-message nil
+              initial-buffer-choice (no-littering-expand-var-file-name "scratch.el")
+              initial-major-mode 'emacs-lisp-mode))
 
-    ;; ibuffer is much better than list-buffers
-    (substitute-key-definition 'list-buffers 'ibuffer global-map)
+      ;; ibuffer is much better than list-buffers
+      (substitute-key-definition 'list-buffers 'ibuffer global-map)
 
-    ;; Thanks Steve Purcell
-    (keymap-global-set "RET" 'newline-and-indent)
+      ;; Thanks Steve Purcell
+      (keymap-global-set "RET" 'newline-and-indent)
 
-    (delete-selection-mode 1) ; Actions on active region will delete
+      (delete-selection-mode 0) ; Actions on active region will delete
+      (add-to-list 'write-file-functions 'delete-trailing-whitespace)
+      (add-hook 'elpaca-after-init-hook
+                `(lambda ()
+                   ;; Undo the file handler trick from early-init.el
+                   (setq file-name-handler-alist file-name-handler-alist-old)
+                   ;; Still more memory per GC than standard, but not so much that GC
+                   ;; becomes slow.
+                   (setq gc-cons-threshold (* 16 1000 1000))
+                   (setq gc-cons-percentage 0.1))
+                t))
 
-    (add-hook 'elpaca-after-init-hook
-              `(lambda ()
-                 ;; Undo the file handler trick from early-init.el
-                 (setq file-name-handler-alist file-name-handler-alist-old)
-                 ;; Still more memory per GC than standard, but not so much that GC
-                 ;; becomes slow.
-                 (setq gc-cons-threshold (* 16 1000 1000))
-                 (setq gc-cons-percentage 0.1))
-              t))
-
-  (use-package gcmh
+    (use-package gcmh
       :ensure t
       :config
       (gcmh-mode 1)
@@ -163,85 +163,85 @@ bootstrapping elpaca
                   (message "*** Emacs loaded in %s seconds with %d garbage collections."
                            (emacs-init-time "%.2f")
                            gcs-done))))
-  ;; Always run a server if there isn't one, for any emacsclients to connect to.
-  (use-package server
-    :ensure nil
-    :config
-    (add-hook 'elpaca-after-init-hook
-              (lambda ()
-                (unless (server-running-p)
-                  (server-start)))))
+    ;; Always run a server if there isn't one, for any emacsclients to connect to.
+    (use-package server
+      :ensure nil
+      :config
+      (add-hook 'elpaca-after-init-hook
+                (lambda ()
+                  (unless (server-running-p)
+                    (server-start)))))
 
-  (use-package bookmark
-    :ensure nil
-    :config
-    (setopt bookmark-save-flag 1)
-    ;; Save bookmarks every five minutes
-    (run-at-time nil (* 5 60) #'bookmark-save))
+    (use-package bookmark
+      :ensure nil
+      :config
+      (setopt bookmark-save-flag 1)
+      ;; Save bookmarks every five minutes
+      (run-at-time nil (* 5 60) #'bookmark-save))
 
-  ;; Accumulate history of buffers automatically.  Saves mental effort enormously.
-  (use-package recentf
-    :ensure nil
-    :config
-    (recentf-load-list)
-    (recentf-mode 1)
-    (setq recentf-max-saved-items 200)
-    ;; Save recentf every five minutes
-    (run-at-time nil (* 5 60) #'recentf-save-list)
-    (add-hook 'kill-emacs-hook #'recentf-save-list))
+    ;; Accumulate history of buffers automatically.  Saves mental effort enormously.
+    (use-package recentf
+      :ensure nil
+      :config
+      (recentf-load-list)
+      (recentf-mode 1)
+      (setq recentf-max-saved-items 200)
+      ;; Save recentf every five minutes
+      (run-at-time nil (* 5 60) #'recentf-save-list)
+      (add-hook 'kill-emacs-hook #'recentf-save-list))
 
-  ;; See yasnippet's config and snippet in
-  ;; ~/.emacs.d/etc/yasnippet/emacs-lisp-mode/package
-  (use-package autoinsert
-  :ensure nil
-  :config
-  (setq auto-insert-query nil)
-  (setq auto-insert-alist
-        `((emacs-lisp-mode . (lambda () 
-                              (require 'yasnippet)
-                              (insert "<p")
-                              (call-interactively #'yas-expand)))
-          (csharp-mode . (lambda ()
-                          (require 'yasnippet)
-                          (if (string-match-p "I[A-Z].*\\.cs$" (buffer-name))
-                              (insert "<i")
-                            (insert "<"
-                                  (completing-read "Type (c)lass/(r)ecord: " '("c" "r") nil t)))
-                          (call-interactively #'yas-expand)))))
-  (auto-insert-mode t))
+    ;; See yasnippet's config and snippet in
+    ;; ~/.emacs.d/etc/yasnippet/emacs-lisp-mode/package
+    (use-package autoinsert
+      :ensure nil
+      :config
+      (setq auto-insert-query nil)
+      (setq auto-insert-alist
+            `((emacs-lisp-mode . (lambda ()
+                                   (require 'yasnippet)
+                                   (insert "<p")
+                                   (call-interactively #'yas-expand)))
+              (csharp-mode . (lambda ()
+                               (require 'yasnippet)
+                               (if (string-match-p "I[A-Z].*\\.cs$" (buffer-name))
+                                   (insert "<i")
+                                 (insert "<"
+                                         (completing-read "Type (c)lass/(r)ecord: " '("c" "r") nil t)))
+                               (call-interactively #'yas-expand)))))
+      (auto-insert-mode t))
 
-  (use-package savehist
-    :ensure nil
-    :init (savehist-mode t))
+    (use-package savehist
+      :ensure nil
+      :init (savehist-mode t))
 
-  (use-package s
+    (use-package s
       :ensure t
       :demand t)
 
-  (use-package transient
+    (use-package transient
       :ensure t
       :demand t
       :after compat
       :bind(( "C-c '" . #'my/lsp-transient)))
     (elpaca-wait)
 #+end_src
- 
+
 #+RESULTS:
 | (lambda nil (message *** Emacs loaded in %s seconds with %d garbage collections. (emacs-init-time %.2f) gcs-done)) | #[0 \301!\210eb\210\302 \210\303\304!\207 [dashboard-buffer-name switch-to-buffer redisplay run-hooks dashboard-after-initialize-hook] 2] | (closure (t) nil (message *** Emacs loaded in %s seconds with %d garbage collections. (emacs-init-time %.2f) gcs-done)) |
- 
+
 ** allow themes and babel blocks
 #+begin_src emacs-lisp
   (setq custom-safe-themes t)
   (setq org-confirm-babel-evaluate nil)
   (setq org-return-follow-link t)
 #+end_src
- 
+
 #+RESULTS:
 : t
- 
- 
+
+
 ** Native compilation
- 
+
 #+begin_src emacs-lisp
   ;; Silence compiler warnings as they can be pretty disruptive
   ;; (setq native-comp-async-report-warnings-errors nil)
@@ -249,23 +249,23 @@ bootstrapping elpaca
   ;; Set the right directory to store the native comp cache
   ;; (add-to-list 'native-comp-eln-load-path (expand-file-name "eln-cache/" user-emacs-directory))
 #+end_src
- 
+
 #+RESULTS:
 | /home/karim/.cache/emacs/eln-cache/ | /home/karim/.emacs.d/eln-cache/ | /home/karim/.guix-profile/lib/emacs/native-site-lisp | /gnu/store/3bsvi1gvbacnpbxrv6v1334d2d256766-emacs-29.3/lib/emacs/29.3/native-lisp/ |
 ** Adding sources for packages
 #+begin_src emacs-lisp
   (require 'package)
   (setq package-archives
-          '(("gnu" . "https://elpa.gnu.org/packages/")
-            ("melpa" . "https://melpa.org/packages/")
-            ("org" . "https://orgmode.org/elpa/")))
+        '(("gnu" . "https://elpa.gnu.org/packages/")
+          ("melpa" . "https://melpa.org/packages/")
+          ("org" . "https://orgmode.org/elpa/")))
   (setq use-package-always-ensure t)
-      ;; Comment/uncomment this line to enable MELPA Stable if desired.  See `package-archive-priorities`
-      ;; and `package-pinned-packages`. Most users will not need or want to do this.
-      ;;(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
+  ;; Comment/uncomment this line to enable MELPA Stable if desired.  See `package-archive-priorities`
+  ;; and `package-pinned-packages`. Most users will not need or want to do this.
+  ;;(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
   (package-initialize)
-#+end_src 
- 
+#+end_src
+
 #+RESULTS:
 
 
@@ -274,18 +274,18 @@ bootstrapping elpaca
 ** org babel
 #+begin_src emacs-lisp :noweb yes
   (use-package ob-powershell
-       :ensure (ob-powershell :type git
-                    :host github
-                    :repo "rkiggen/ob-powershell")
-       :after org)
+    :ensure (ob-powershell :type git
+                           :host github
+                           :repo "rkiggen/ob-powershell")
+    :after org)
   (use-package ob-fsharp
     :after org)
   (use-package ob-restclient
     :after org)
   (use-package ob-http
     :ensure (ob-http :type git
-                       :host github
-                       :repo "zweifisch/ob-http")
+                     :host github
+                     :repo "zweifisch/ob-http")
     :after org
     :config
     (org-babel-do-load-languages
@@ -304,32 +304,32 @@ bootstrapping elpaca
 ** formatting
 #+begin_src emacs-lisp
   (setq-default indent-tabs-mode nil)
-      (setq-default tab-width 4) 
-      (setq-default require-final-newline nil)
-      (setq-default mode-require-final-newline nil)
-      (setq c-require-final-newline '((c-mode . nil) (c++-mode . nil) (objc-mode . nil)))
-      (setq-default buffer-file-coding-system 'utf-8-unix)
-    (global-auto-revert-mode 1)
-    (tool-bar-mode -1)
-    (menu-bar-mode -1)
-    (scroll-bar-mode -1)
-    (set-face-attribute 'default nil :font "Fira Code-16")
+  (setq-default tab-width 4)
+  (setq-default require-final-newline nil)
+  (setq-default mode-require-final-newline nil)
+  (setq c-require-final-newline '((c-mode . nil) (c++-mode . nil) (objc-mode . nil)))
+  (setq-default buffer-file-coding-system 'utf-8-unix)
+  (global-auto-revert-mode 1)
+  (tool-bar-mode -1)
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  ;; (set-face-attribute 'default nil :font "Fira Code-16")
 
-      (setq-default major-mode
-                    (lambda () ; guess major mode from file name
-                      (unless buffer-file-name
-                        (let ((buffer-file-name (buffer-name)))
-                          (set-auto-mode)))))
+  (setq-default major-mode
+                (lambda () ; guess major mode from file name
+                  (unless buffer-file-name
+                    (let ((buffer-file-name (buffer-name)))
+                      (set-auto-mode)))))
 
-      (setq confirm-kill-emacs #'yes-or-no-p)
-        
+  (setq confirm-kill-emacs #'yes-or-no-p)
+
   (defalias 'yes-or-no-p 'y-or-n-p)
-    (global-set-key (kbd "C-c l") #'org-store-link)
+  (global-set-key (kbd "C-c l") #'org-store-link)
 
 
   (setq compilation-ask-about-save nil)
 #+end_src
- 
+
 ** Behaviour
 #+begin_src emacs-lisp
   (setq-default abbrev-mode t)
@@ -354,23 +354,23 @@ I've got a folder of custom Emacs Lisp libraries which must be added to the load
 #+end_src
 
 #+RESULTS:
- 
+
 ** Dashboard
 #+begin_src emacs-lisp
   (use-package all-the-icons)
   (use-package dashboard
     :config
-  (setq dashboard-startup-banner 'logo)
-  (setq dashboard-set-heading-icons t))
+    (setq dashboard-startup-banner 'logo)
+    (setq dashboard-set-heading-icons t))
 #+end_src
- 
+
 #+RESULTS:
 : t
 ** Keybinding Panel (which-key)
- 
+
 [[https://github.com/justbur/emacs-which-key][which-key]] is great for getting an overview of what keybindings are available
 based on the prefix keys you entered.  Learned about this one from Spacemacs.
- 
+
 #+begin_src emacs-lisp
   (use-package diminish)
   (use-package which-key
@@ -386,7 +386,7 @@ based on the prefix keys you entered.  Learned about this one from Spacemacs.
     (doom-modeline-mode 1)
     (setf doom-modeline-icon t))
 #+end_src
- 
+
 #+RESULTS:
 : t
 ** Winner-mode
@@ -404,7 +404,7 @@ based on the prefix keys you entered.  Learned about this one from Spacemacs.
 #+end_src
 ** Version control
 [[https://magit.vc/][Magit]] is one of emacs best features. It's been around forever at it has truly helped me understand the intricasies of git.
- 
+
 if this isn't you cup of tea and you're on windows or mac, then I
 highly recommend [[https://magit.vc/][Fork]]
 
@@ -413,40 +413,40 @@ where you browse code is immennsely freeing and you don't break you
 flow as much. On top of that you have all of your code search,
 navigation etc. available since you're in your editor.
 #+begin_src emacs-lisp
-    (use-package magit
-      :config
-      (setf magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1
-            magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1
-            magit-save-repository-buffers 'dontask
-            ediff-window-setup-function 'ediff-setup-windows-plain)
-      :bind (("C-c v" . #'my-git-commands)))
+  (use-package magit
+    :config
+    (setf magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1
+          magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1
+          magit-save-repository-buffers 'dontask
+          ediff-window-setup-function 'ediff-setup-windows-plain)
+    :bind (("C-c v" . #'my-git-commands)))
 
-    (use-package magit-todos)
+  (use-package magit-todos)
 
-    (use-package conventional-commit
-      :ensure (conventional-commit
-                 :type git
-                 :host github
-                 :repo "akirak/conventional-commit.el")
-      :hook (git-commit-mode . conventional-commit-setup))
-  
-    (use-package git-timemachine
-      :ensure t)
+  (use-package conventional-commit
+    :ensure (conventional-commit
+             :type git
+             :host github
+             :repo "akirak/conventional-commit.el")
+    :hook (git-commit-mode . conventional-commit-setup))
+
+  (use-package git-timemachine
+    :ensure t)
 
   (use-package git-cliff
-      :config
-      (setf git-cliff-executable "~/.cargo/bin/git-cliff"))
-    
-    (transient-define-prefix my-git-commands ()
-      "A transient for common git operations."
-      ["Git Commands"
-       ["Magit"
-        ("g" "Status" magit-status)
-        ("b" "blame" magit-blame-addition)
-        ("C" "Clone" magit-clone)
-        ]
-       ["Timemachine"
-        ("t" "Toggle Timemachine" git-timemachine-toggle)]])
+    :config
+    (setf git-cliff-executable "~/.cargo/bin/git-cliff"))
+
+  (transient-define-prefix my-git-commands ()
+    "A transient for common git operations."
+    ["Git Commands"
+     ["Magit"
+      ("g" "Status" magit-status)
+      ("b" "blame" magit-blame-addition)
+      ("C" "Clone" magit-clone)
+      ]
+     ["Timemachine"
+      ("t" "Toggle Timemachine" git-timemachine-toggle)]])
 #+end_src
 
 ** Puni (structural editing - sexp / balanced expressions)
@@ -478,121 +478,121 @@ navigation etc. available since you're in your editor.
 ** completion
 #+begin_src emacs-lisp
 
-   (use-package vertico
-     :config
-     (vertico-mode))
+  (use-package vertico
+    :config
+    (vertico-mode))
 
-   (use-package consult
-     :bind (([remap switch-to-buffer] . consult-buffer)
-            ([remap project-find-regexp] . consult-ripgrep)
-            ([remap imenu] . consult-imenu))
-     :after vertico)
+  (use-package consult
+    :bind (([remap switch-to-buffer] . consult-buffer)
+           ([remap project-find-regexp] . consult-ripgrep)
+           ([remap imenu] . consult-imenu))
+    :after vertico)
 
-   (use-package vertico-prescient
-     :after prescient
-     :config
-     (vertico-prescient-mode t))
+  (use-package vertico-prescient
+    :after prescient
+    :config
+    (vertico-prescient-mode t))
 
-     ;;; Completion at point
+    ;;; Completion at point
 
-   (use-package corfu
-     :config
-     (setopt corfu-cycle t)
-     (setopt corfu-auto t)
-     (setopt corfu-separator ?\s)          ; ?\s is " "
-     (setopt tab-always-indent 'complete)
-     (setopt corfu-min-width 30)
-     (setopt completion-ignore-case t)
-     (keymap-set corfu-map "RET" nil) ; aborts after newline
-     (global-corfu-mode 1))
+  (use-package corfu
+    :config
+    (setopt corfu-cycle t)
+    (setopt corfu-auto t)
+    (setopt corfu-separator ?\s)          ; ?\s is " "
+    (setopt tab-always-indent 'complete)
+    (setopt corfu-min-width 30)
+    (setopt completion-ignore-case t)
+    (keymap-set corfu-map "RET" nil) ; aborts after newline
+    (global-corfu-mode 1))
 
-   (use-package cape
-     :init
-     (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-     (add-to-list 'completion-at-point-functions #'cape-file)
-     (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-     (add-to-list 'completion-at-point-functions #'cape-elisp-block))
+  (use-package cape
+    :init
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-block))
 
-   (use-package consult-lsp
-     :ensure t)
+  (use-package consult-lsp
+    :ensure t)
 
-   (use-package consult-flycheck
-     :ensure t)
+  (use-package consult-flycheck
+    :ensure t)
 
-   (use-package lsp-mode
-     :commands (lsp lsp-deferred)
-     :hook ((csharp-mode . lsp-deferred)
-            ;; (fsharp-mode . lsp-deferred)
-            )
-     :bind ((:map lsp-mode-map
-                ("S-M-SPC" . #'lsp-signature-activate)))
-     :config
-     (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
-     (setq lsp-prefer-capf t)
-     (transient-define-prefix my/lsp-transient ()
-       "LSP commands"
-       [["Actions"
-         ("d" "Definition" lsp-find-definition)
-         ("?" "References" lsp-find-references)
-         ("i" "Implementation" lsp-find-implementation)
-         ("t" "Type Definition" lsp-find-type-definition)
-         ("s" "Symbol" consult-lsp-symbols)
-         ("f" "Format Buffer" lsp-format-buffer)
-         ("a" "Code Action" lsp-execute-code-action)]
-        ["Diagnostics"
-         ("n" "Next Diagnostic" flycheck-next-error)
-         ("p" "Previous Diagnostic" flycheck-previous-error)
-         ("l" "List Diagnostics" consult-flymake)]
-        ["Workspace"
-         ("R" "Restart Workspace" lsp-restart-workspace)
-         ("q" "Shutdown Workspace" lsp-shutdown-workspace)
-         ("r" "Rename Symbol" lsp-rename)]
-        ["Other"
-         ("m" "Toggle LSP Mode" lsp-mode)]]))
+  (use-package lsp-mode
+    :commands (lsp lsp-deferred)
+    :hook ((csharp-mode . lsp-deferred)
+           ;; (fsharp-mode . lsp-deferred)
+           )
+    :bind ((:map lsp-mode-map
+                 ("S-M-SPC" . #'lsp-signature-activate)))
+    :config
+    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+    (setq lsp-prefer-capf t)
+    (transient-define-prefix my/lsp-transient ()
+      "LSP commands"
+      [["Actions"
+        ("d" "Definition" lsp-find-definition)
+        ("?" "References" lsp-find-references)
+        ("i" "Implementation" lsp-find-implementation)
+        ("t" "Type Definition" lsp-find-type-definition)
+        ("s" "Symbol" consult-lsp-symbols)
+        ("f" "Format Buffer" lsp-format-buffer)
+        ("a" "Code Action" lsp-execute-code-action)]
+       ["Diagnostics"
+        ("n" "Next Diagnostic" flycheck-next-error)
+        ("p" "Previous Diagnostic" flycheck-previous-error)
+        ("l" "List Diagnostics" consult-flymake)]
+       ["Workspace"
+        ("R" "Restart Workspace" lsp-restart-workspace)
+        ("q" "Shutdown Workspace" lsp-shutdown-workspace)
+        ("r" "Rename Symbol" lsp-rename)]
+       ["Other"
+        ("m" "Toggle LSP Mode" lsp-mode)]]))
 
 
-   ;; Make sure orderless works well with LSP
-   (use-package orderless
-     :config
-     (setopt completion-styles '(orderless basic))
-     (setopt completion-category-overrides '((file (styles basic partial-completion)))))
-   (use-package sly
-     :ensure t)
+  ;; Make sure orderless works well with LSP
+  (use-package orderless
+    :config
+    (setopt completion-styles '(orderless basic))
+    (setopt completion-category-overrides '((file (styles basic partial-completion)))))
+  (use-package sly
+    :ensure t)
 
-   (use-package sharper
-     :bind (("C-c d" . #'sharper-main-transient)))
+  (use-package sharper
+    :bind (("C-c d" . #'sharper-main-transient)))
 
-   (use-package fsharp-mode)
-   (add-hook 'web-mode-hook 'my-web-mode-hook)
-   (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
-   (use-package eglot-fsharp)
-   ;; SLIME-Cape integration
-   (use-package yasnippet-capf
-     :ensure t
-     :after (cape yasnippet)
-     :config
-     (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+  (use-package fsharp-mode)
+  (add-hook 'web-mode-hook 'my-web-mode-hook)
+  (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
 
-   ;; Configure hippie-expand with YASnippet
-   (use-package yasnippet
-     :ensure t
-     :config
-     (yas-global-mode 1)
-     (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
-     (setq hippie-expand-try-functions-list
-           (cons 'yas-hippie-try-expand
-                 (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
+  ;; SLIME-Cape integration
+  (use-package yasnippet-capf
+    :ensure t
+    :after (cape yasnippet)
+    :config
+    (add-to-list 'completion-at-point-functions #'yasnippet-capf))
 
-   (use-package yasnippet-snippets
-     :after yasnippet)
-   ;; Dabbrev configuration
-   (use-package dabbrev
-     :ensure nil  ; built-in package
-     :config
-     (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
-     (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
-     (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
-     :bind ([remap dabbrev-expand] . hippie-expand))
+  ;; Configure hippie-expand with YASnippet
+  (use-package yasnippet
+    :ensure t
+    :config
+    (yas-global-mode 1)
+    (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
+    (setq hippie-expand-try-functions-list
+          (cons 'yas-hippie-try-expand
+                (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
+
+  (use-package yasnippet-snippets
+    :after yasnippet)
+  ;; Dabbrev configuration
+  (use-package dabbrev
+    :ensure nil  ; built-in package
+    :config
+    (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
+    (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
+    (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
+    :bind ([remap dabbrev-expand] . hippie-expand))
 #+end_src
 
 #+RESULTS:
@@ -660,27 +660,27 @@ like perps-mode, perps.el and perspective.el but simpler and utilizing the built
 
 ** org gtd
 #+begin_src emacs-lisp
-    (use-package org-gtd
-      :config
-      (setf org-gtd-directory "~/Dropbox/org/")
-      (org-gtd-mode 1)
-      (transient-define-prefix my/org-gtd-transient-menu ()
-        "Org GTD"
-        ["Org GTD Commands"
-         ("c" "Capture Task" org-capture)
-         ("p" "Process Inbox" org-gtd-process-inbox)
-         ("e" "Engage" org-gtd-engage)
-         ("r" "organize" org-gtd-organize)
-         ])
-      (setf org-capture-templates
-            '(("i" "Inbox" entry (file "~/Dropbox/org/inbox.org")
-               "* %?\n%U\n" :prepend t)
-              ("t" "Task" entry (file "~/Dropbox/org/inbox.org")
-               "* TODO %?\n%U\n" :prepend t)
-              ;; Add other templates here
-              ))
-      :bind (("C-c n" . my/org-gtd-transient-menu))
-      :init (setf org-gtd-update-ack "3.0.0"))
+  (use-package org-gtd
+    :config
+    (setf org-gtd-directory "~/Dropbox/org/")
+    (org-gtd-mode 1)
+    (transient-define-prefix my/org-gtd-transient-menu ()
+      "Org GTD"
+      ["Org GTD Commands"
+       ("c" "Capture Task" org-capture)
+       ("p" "Process Inbox" org-gtd-process-inbox)
+       ("e" "Engage" org-gtd-engage)
+       ("r" "organize" org-gtd-organize)
+       ])
+    (setf org-capture-templates
+          '(("i" "Inbox" entry (file "~/Dropbox/org/inbox.org")
+             "* %?\n%U\n" :prepend t)
+            ("t" "Task" entry (file "~/Dropbox/org/inbox.org")
+             "* TODO %?\n%U\n" :prepend t)
+            ;; Add other templates here
+            ))
+    :bind (("C-c n" . my/org-gtd-transient-menu))
+    :init (setf org-gtd-update-ack "3.0.0"))
 #+end_src
 
 #+RESULTS:
@@ -746,8 +746,8 @@ these days.
     :bind (("C-," . #'embark-act)
            ("C-:" . #'embark-dwim)
            ("C-h B" . #'embark-bindings))) ;;shows mode + minor key in a
-                                           ;;searchable manner very
-                                           ;;useful
+  ;;searchable manner very
+  ;;useful
   (use-package embark-consult)
 #+end_src
 
@@ -771,7 +771,7 @@ makes grep buffers writeable.
   (use-package moc
     :ensure t)
 #+end_src
-some configuration for debugging slides 
+some configuration for debugging slides
 #+begin_src emacs-lisp
 
 #+end_src
@@ -782,7 +782,7 @@ some configuration for debugging slides
   (use-package pdf-tools
     :hook ((pdf-view-mode . pdf-tools-enable-minor-modes)
            (pdf-view-mode . pdf-view-midnight-minor-mode)
-           (pdf-view-mode . (lambda () 
+           (pdf-view-mode . (lambda ()
                               (display-line-numbers-mode -1)
                               (set-fringe-mode 0))))
     :config
@@ -792,63 +792,63 @@ some configuration for debugging slides
 
 *** Emacs Lisp
 #+begin_src  emacs-lisp
-    ;; match da pairs
-    (electric-pair-mode 1)
-    (add-hook 'org-mode-hook (lambda ()
-                               (setq-local electric-pair-inhibit-predicate
-                                           `(lambda (c)
-                                              (if (char-equal c ?<) t (,electric-pair-inhibit-predicate c))))))
+  ;; match da pairs
+  (electric-pair-mode 1)
+  (add-hook 'org-mode-hook (lambda ()
+                             (setq-local electric-pair-inhibit-predicate
+                                         `(lambda (c)
+                                            (if (char-equal c ?<) t (,electric-pair-inhibit-predicate c))))))
 
-    (use-package aggressive-indent)
-    ;; Enable paredit for Common Lisp programming
-    (add-hook 'lisp-mode-hook #'aggressive-indent-mode)
+  (use-package aggressive-indent)
+  ;; Enable paredit for Common Lisp programming
+  (add-hook 'lisp-mode-hook #'aggressive-indent-mode)
 
-    ;; Enable paredit for Emacs Lisp programming
+  ;; Enable paredit for Emacs Lisp programming
   (defun my-setup-check-parens ()
     "Set up check-parens, but only in =emacs-lisp-mode'."
     (when (derived-mode-p 'emacs-lisp-mode)
       (add-hook 'before-save-hook #'check-parens nil t)))
 
   (add-hook 'emacs-lisp-mode-hook #'my-setup-check-parens)
-  
-    (use-package eros
-      :config
-      (setf eros-mode 1))
+
+  (use-package eros
+    :config
+    (setf eros-mode 1))
 #+end_src
 ** Common Lisp
 #+begin_src emacs-lisp
   (use-package paredit
-        :hook ((lisp-mode . #'enable-paredit-mode)
-               (emacs-lisp-mode . #'enable-paredit-mode)))
+    :hook ((lisp-mode . #'enable-paredit-mode)
+           (emacs-lisp-mode . #'enable-paredit-mode)))
   ;;paren files should also be lispy lisp mode (js but in lisp ma god)
-    ;; (add-to-list 'auto-mode-alist (cons "\\.paren\\'" 'lisp-mode))
-    ;;       (add-hook 'lisp-mode-hook
-    ;;                 #'(lambda ()
-    ;;                     (when (and buffer-file-name
-    ;;                                (string-match-p "\\.paren\\>" buffer-file-name))
-    ;;                       (unless (slime-connected-p)
-    ;;                         (save-excursion (slime)))
-    ;;                       (trident-mode +1))))
+  ;; (add-to-list 'auto-mode-alist (cons "\\.paren\\'" 'lisp-mode))
+  ;;       (add-hook 'lisp-mode-hook
+  ;;                 #'(lambda ()
+  ;;                     (when (and buffer-file-name
+  ;;                                (string-match-p "\\.paren\\>" buffer-file-name))
+  ;;                       (unless (slime-connected-p)
+  ;;                         (save-excursion (slime)))
+  ;;                       (trident-mode +1))))
 
-    ;;       (defun steal-slime-keys-for-trident! ()
-    ;;       ;; Don't affect all SLIME buffers, just where invoked
-    ;;       (make-local-variable 'slime-mode-map)
-    ;;       (let ((map slime-mode-map))
-    ;;         (define-key map (kbd "C-x C-e") nil)
-    ;;         (define-key map (kbd "C-c C-r") nil)
-    ;;         (define-key map (kbd "C-M-x")   nil)
-    ;;         (define-key map (kbd "C-c C-k") nil)
-    ;;         (define-key map (kbd "C-c C-m") nil))
-    ;;       (let ((map trident-mode-map))
-    ;;         (define-key map (kbd "C-x C-e") 'trident-eval-last-expression)
-    ;;         (define-key map (kbd "C-c C-r") 'trident-eval-region)
-    ;;         (define-key map (kbd "C-M-x")   'trident-eval-defun)
-    ;;         (define-key map (kbd "C-c C-k") 'trident-eval-buffer)
-    ;;         (define-key map (kbd "C-c C-m") 'trident-expand-sexp)))
+  ;;       (defun steal-slime-keys-for-trident! ()
+  ;;       ;; Don't affect all SLIME buffers, just where invoked
+  ;;       (make-local-variable 'slime-mode-map)
+  ;;       (let ((map slime-mode-map))
+  ;;         (define-key map (kbd "C-x C-e") nil)
+  ;;         (define-key map (kbd "C-c C-r") nil)
+  ;;         (define-key map (kbd "C-M-x")   nil)
+  ;;         (define-key map (kbd "C-c C-k") nil)
+  ;;         (define-key map (kbd "C-c C-m") nil))
+  ;;       (let ((map trident-mode-map))
+  ;;         (define-key map (kbd "C-x C-e") 'trident-eval-last-expression)
+  ;;         (define-key map (kbd "C-c C-r") 'trident-eval-region)
+  ;;         (define-key map (kbd "C-M-x")   'trident-eval-defun)
+  ;;         (define-key map (kbd "C-c C-k") 'trident-eval-buffer)
+  ;;         (define-key map (kbd "C-c C-m") 'trident-expand-sexp)))
 
-    ;;     (add-hook 'trident-mode-hook 'steal-slime-keys-for-trident!)
+  ;;     (add-hook 'trident-mode-hook 'steal-slime-keys-for-trident!)
 #+end_src
- 
+
 ** web
 #+begin_src emacs-lisp
   (use-package impatient-mode
@@ -869,27 +869,27 @@ some configuration for debugging slides
 ** regex
 #+begin_src emacs-lisp
   (use-package ample-regexps
-        :ensure t
-        :config
-        (define-arx guid-rx
-      '((hex-char (regexp "[0-9a-fA-F]"))
-        (guid-group4 (seq (= 4 hex-char)))
-        (guid-group8 (seq (= 8 hex-char)))
-        (guid-group12 (seq (= 12 hex-char)))
-        (guid-sep (or "-" ""))  ; Handles both with and without hyphens
-        (guid (seq 
-               (or "{" "" "<")  ; Optional opening bracket
-               guid-group8 guid-sep
-               guid-group4 guid-sep
-               guid-group4 guid-sep
-               guid-group4 guid-sep
-               guid-group12
-               (or "}" "" ">"))))))
+    :ensure t
+    :config
+    (define-arx guid-rx
+                '((hex-char (regexp "[0-9a-fA-F]"))
+                  (guid-group4 (seq (= 4 hex-char)))
+                  (guid-group8 (seq (= 8 hex-char)))
+                  (guid-group12 (seq (= 12 hex-char)))
+                  (guid-sep (or "-" ""))  ; Handles both with and without hyphens
+                  (guid (seq
+                         (or "{" "" "<")  ; Optional opening bracket
+                         guid-group8 guid-sep
+                         guid-group4 guid-sep
+                         guid-group4 guid-sep
+                         guid-group4 guid-sep
+                         guid-group12
+                         (or "}" "" ">"))))))
 
-    ; Optional closing bracket
+                                          ; Optional closing bracket
 
-    ;; Examples of how to use it:
-    ;; (guid-rx guid)  ; This will create the regexp
+  ;; Examples of how to use it:
+  ;; (guid-rx guid)  ; This will create the regexp
 #+end_src
 
 ** bicep-ts-mode
@@ -908,9 +908,9 @@ some configuration for debugging slides
 increases details in the minibuffer for things like files and also
 when looking up function
 #+begin_src emacs-lisp
-      (use-package marginalia
-        :ensure t
-        :init (marginalia-mode))
+  (use-package marginalia
+    :ensure t
+    :init (marginalia-mode))
 #+end_src
 
 #+RESULTS:
@@ -937,11 +937,11 @@ visit them again. I use vertico for my minibuffer therefore I need the
 vertico package of prescient.
 #+begin_src emacs-lisp
   (use-package prescient
-  :after vertico
-  :config
-  (setopt prescient-history-length 200)
-  (setopt prescient-sort-length-enable t))
-  #+end_src
+    :after vertico
+    :config
+    (setopt prescient-history-length 200)
+    (setopt prescient-sort-length-enable t))
+#+end_src
 
 #+RESULTS:
 : [nil 26519 33959 746874 nil elpaca-process-queues nil nil 880000 nil]
@@ -949,8 +949,8 @@ vertico package of prescient.
 ** auth
 integrate 1password with emacs auth sources
 #+begin_src emacs-lisp
-      (use-package auth-source-1password
-        :config (auth-source-1password-enable))
+  (use-package auth-source-1password
+    :config (auth-source-1password-enable))
 #+end_src
 
 ** Gptel
@@ -961,67 +961,76 @@ integrate 1password with emacs auth sources
 #+RESULTS:
 : [nil 26534 15895 651388 nil elpaca-process-queues nil nil 41000 nil]
 
+** nameless
+helps with the inconvience in regards to reading function names of
+shared namespaces of emacs
+
+#+begin_src emacs-lisp
+    (use-package nameless
+      :config
+      (add-hook 'emacs-lisp-mode-hook #'nameless-mode))
+#+end_src
 ** eww
 #+begin_src emacs-lisp
   (use-package eww
-  :ensure nil  ;; eww is built into Emacs, no need to install
-  :init
-  ;; Settings to apply before loading eww
-  (setq eww-search-prefix "https://duckduckgo.com/html/?q=")
-  (setq eww-download-directory "~/Downloads/")
-  (setq eww-download-filename-function #'eww-download-filename-unique)
-  
-  :config
-  ;; Visual settings
-  (setq shr-inhibit-images nil)         ;; Show images by default
-  (setq shr-width 80)                   ;; Readable text width
-  (setq shr-color-visible-luminance-min 80)  ;; Better contrast
-  (setq shr-use-fonts nil)              ;; Disable font variations for speed
-  (setq shr-use-colors nil)             ;; Disable colors for faster rendering
-  
-  ;; Table formatting
-  (setq shr-table-horizontal-line "─")
-  (setq shr-table-vertical-line "│")
-  (setq shr-table-corner "┼")
-  
-  ;; Advanced settings
-  (setq shr-charset-enforcement-fn nil)  ;; Auto-detect character encoding
-  (setq shr-external-rendering-functions
-        '((pre . eww-tag-pre)
-          (script . shr-tag-script)))
-  
-  ;; URL and cookie settings
-  (setq url-cookie-trusted-urls '(".*"))
-  (setq url-user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
-  
-  :bind (:map eww-mode-map
-         ("n" . shr-next-link)
-         ("p" . shr-previous-link)
-         ("u" . eww-up-url)
-         ("o" . eww)
-         ("O" . eww-browse-with-external-browser)
-         ("C-c C-h" . eww-list-histories)
-         ("C-c C-b" . eww-list-bookmarks)
-         ("C-c C-a" . eww-add-bookmark))
-  
-  :hook (eww-mode . (lambda ()
-                      (variable-pitch-mode 1)  ;; Better font for reading
-                      (text-scale-increase 1)  ;; Slightly larger text
-                      )))
+    :ensure nil  ;; eww is built into Emacs, no need to install
+    :init
+    ;; Settings to apply before loading eww
+    (setq eww-search-prefix "https://duckduckgo.com/html/?q=")
+    (setq eww-download-directory "~/Downloads/")
+    (setq eww-download-filename-function #'eww-download-filename-unique)
+
+    :config
+    ;; Visual settings
+    (setq shr-inhibit-images nil)         ;; Show images by default
+    (setq shr-width 80)                   ;; Readable text width
+    (setq shr-color-visible-luminance-min 80)  ;; Better contrast
+    (setq shr-use-fonts nil)              ;; Disable font variations for speed
+    (setq shr-use-colors nil)             ;; Disable colors for faster rendering
+
+    ;; Table formatting
+    (setq shr-table-horizontal-line "─")
+    (setq shr-table-vertical-line "│")
+    (setq shr-table-corner "┼")
+
+    ;; Advanced settings
+    (setq shr-charset-enforcement-fn nil)  ;; Auto-detect character encoding
+    (setq shr-external-rendering-functions
+          '((pre . eww-tag-pre)
+            (script . shr-tag-script)))
+
+    ;; URL and cookie settings
+    (setq url-cookie-trusted-urls '(".*"))
+    (setq url-user-agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+
+    :bind (:map eww-mode-map
+                ("n" . shr-next-link)
+                ("p" . shr-previous-link)
+                ("u" . eww-up-url)
+                ("o" . eww)
+                ("O" . eww-browse-with-external-browser)
+                ("C-c C-h" . eww-list-histories)
+                ("C-c C-b" . eww-list-bookmarks)
+                ("C-c C-a" . eww-add-bookmark))
+
+    :hook (eww-mode . (lambda ()
+                        (variable-pitch-mode 1)  ;; Better font for reading
+                        (text-scale-increase 1)  ;; Slightly larger text
+                        )))
 #+end_src
 
 ** Azure-devops-org
 #+name:az-devops
 #+begin_src emacs-lisp :tangle no :noweb yes
-      (use-package azure-devops-org
-        :ensure nil
-        :after request-deferred
-        :config
-        (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
-                                                              :user "credential")
-            azure-devops-org-project "Clever"
-            azure-devops-org-organization "cleveras"))
-        
+  (use-package azure-devops-org
+    :ensure nil
+    :after request-deferred
+    :config
+    (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
+                                                                :user "credential")
+          azure-devops-org-project "Clever"
+          azure-devops-org-organization "cleveras"))
+
 #+end_src
 
 #+RESULTS: az-devops
@@ -1033,13 +1042,18 @@ integrate 1password with emacs auth sources
 ** debuggin (dap-mode)
 #+begin_src emacs-lisp
   (use-package dap-mode
+    :ensure t
     :config (require 'dap-netcore))
 #+end_src
+
+#+RESULTS:
+: [nil 26574 53033 353417 nil elpaca-process-queues nil nil 152000 nil]
 
 ** package ~development~
 #+begin_src emacs-lisp
   (use-package request-deferred)
   (use-package emacsql)
+  (use-package triples)
 #+end_src
 
 #+RESULTS:
@@ -1053,38 +1067,38 @@ integrate 1password with emacs auth sources
     :custom (ledger-clear-whole-transactions t)
     :config
     (defvar ledger-file "/home/karim/Dropbox/ledger/ledger.dat"
-    "Path to your main Ledger file.")
+      "Path to your main Ledger file.")
 
-  (defun ledger-custom-report (name command)
-    "Run a custom Ledger report with NAME and COMMAND."
-    (let ((report-name (format "Custom: %s" name)))
-      (add-to-list 'ledger-reports `(,report-name ,command) t)
-      (ledger-report report-name nil)
-      (delete-other-windows)))
+    (defun ledger-custom-report (name command)
+      "Run a custom Ledger report with NAME and COMMAND."
+      (let ((report-name (format "Custom: %s" name)))
+        (add-to-list 'ledger-reports `(,report-name ,command) t)
+        (ledger-report report-name nil)
+        (delete-other-windows)))
 
-  (transient-define-prefix ledger-reports-transient ()
-    "Transient for running Ledger reports."
-    :transient-suffix 'transient--do-stay
-    ["Ledger Reports"
-     ("n" "Net Worth" (lambda () (interactive) 
-                        (ledger-custom-report "Net Worth" "%(binary) -f %(ledger-file) balance ^Assets ^Liabilities ^Equity and not %Equity:Budget -R")))
-     ("i" "Income Statement" (lambda () (interactive) 
-                               (ledger-custom-report "Income Statement" "%(binary) -f %(ledger-file) balance ^Income ^Expenses -R")))
-     ("r" "Retained Earnings" (lambda () (interactive) 
-                                (ledger-custom-report "Retained Earnings" "%(binary) -f %(ledger-file) balance ^Income ^Expenses -R --sum")))
-     ("b" "Budget Status" (lambda () (interactive) 
-                            (ledger-custom-report "Budget Status" "%(binary) -f %(ledger-file) balance ^Budget")))
-     ("a" "All Accounts" (lambda () (interactive) 
-                           (ledger-custom-report "All Accounts" "%(binary) -f %(ledger-file) balance ^Assets")))
-     ("e" "Expenses" (lambda () (interactive) 
-                       (ledger-custom-report "Expenses" "%(binary) -f %(ledger-file) balance ^Expenses -R")))
-     ("m" "Monthly Expenses" (lambda () (interactive) 
-                               (ledger-custom-report "Monthly Expenses" "%(binary) -f %(ledger-file) --monthly balance ^Expenses -R")))])
+    (transient-define-prefix ledger-reports-transient ()
+      "Transient for running Ledger reports."
+      :transient-suffix 'transient--do-stay
+      ["Ledger Reports"
+       ("n" "Net Worth" (lambda () (interactive)
+                          (ledger-custom-report "Net Worth" "%(binary) -f %(ledger-file) balance ^Assets ^Liabilities ^Equity and not %Equity:Budget -R")))
+       ("i" "Income Statement" (lambda () (interactive)
+                                 (ledger-custom-report "Income Statement" "%(binary) -f %(ledger-file) balance ^Income ^Expenses -R")))
+       ("r" "Retained Earnings" (lambda () (interactive)
+                                  (ledger-custom-report "Retained Earnings" "%(binary) -f %(ledger-file) balance ^Income ^Expenses -R --sum")))
+       ("b" "Budget Status" (lambda () (interactive)
+                              (ledger-custom-report "Budget Status" "%(binary) -f %(ledger-file) balance ^Budget")))
+       ("a" "All Accounts" (lambda () (interactive)
+                             (ledger-custom-report "All Accounts" "%(binary) -f %(ledger-file) balance ^Assets")))
+       ("e" "Expenses" (lambda () (interactive)
+                         (ledger-custom-report "Expenses" "%(binary) -f %(ledger-file) balance ^Expenses -R")))
+       ("m" "Monthly Expenses" (lambda () (interactive)
+                                 (ledger-custom-report "Monthly Expenses" "%(binary) -f %(ledger-file) --monthly balance ^Expenses -R")))])
 
-  (global-set-key (kbd "C-c l") #'ledger-reports-transient)
+    (global-set-key (kbd "C-c l") #'ledger-reports-transient)
 
-  (ledger-reports-add "Cash Flow" "ledger -f %(ledger-file) -p %(month) register ^Assets:Checking")
-  (ledger-reports-add "Budget vs. Actual" "ledger -f %(ledger-file) -p %(month) --budget --depth 2 balance ^Expenses"))
+    (ledger-reports-add "Cash Flow" "ledger -f %(ledger-file) -p %(month) register ^Assets:Checking")
+    (ledger-reports-add "Budget vs. Actual" "ledger -f %(ledger-file) -p %(month) --budget --depth 2 balance ^Expenses"))
 
   (use-package flycheck-ledger :after ledger-mode)
 #+end_src
@@ -1095,14 +1109,14 @@ integrate 1password with emacs auth sources
 
 * Wrap Up
 ** Guix Emacs Profile
- 
+
 *.config/guix/manifests/emacs.scm:*
- 
+
 #+begin_src scheme :mkdirp yes :tangle ~/.config/guix/manifests/emacs.scm :noweb yes
   (specifications->manifest
    '("emacs"
      <<packages>>
-  ))
+     ))
 #+end_src
 ** custom elisp
 #+begin_src emacs-lisp :noweb yes
@@ -1111,4 +1125,3 @@ integrate 1password with emacs auth sources
   <<az-devops>>
 
 #+end_src
-
