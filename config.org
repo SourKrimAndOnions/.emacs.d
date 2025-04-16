@@ -282,6 +282,12 @@ bootstrapping elpaca
     :after org)
   (use-package ob-restclient
     :after org)
+
+  (use-package ob-csharp
+    :ensure (ob-csharp :type git
+                       :host github
+                       :repo "samwdp/ob-csharp"))
+
   (use-package ob-http
     :ensure (ob-http :type git
                      :host github
@@ -298,6 +304,7 @@ bootstrapping elpaca
              (fsharp . t)
              (restclient . t)
              (powershell . t)
+             (csharp . t)
              (http . t)))))
 #+end_src
 
@@ -623,6 +630,14 @@ keybinding maps like magit
   ;;     ("x" "show errors in active buffers" consult-flymake)]])
 #+end_src
 
+** ekg
+#+begin_src emacs-lisp
+    (use-package ekg)
+#+end_src
+
+#+RESULTS:
+: [nil 26594 47914 121534 nil elpaca-process-queues nil nil 271000 nil]
+
 ** tabspaces
 like perps-mode, perps.el and perspective.el but simpler and utilizing the built in tab-bar-mode
 #+begin_src emacs-lisp
@@ -656,44 +671,6 @@ like perps-mode, perps.el and perspective.el but simpler and utilizing the built
 
       (add-to-list 'consult-buffer-sources 'consult--source-workspace)))
 
-#+end_src
-
-** org gtd
-#+begin_src emacs-lisp
-  (use-package org-gtd
-    :config
-    (setf org-gtd-directory "~/Dropbox/org/")
-    (org-gtd-mode 1)
-    (transient-define-prefix my/org-gtd-transient-menu ()
-      "Org GTD"
-      ["Org GTD Commands"
-       ("c" "Capture Task" org-capture)
-       ("p" "Process Inbox" org-gtd-process-inbox)
-       ("e" "Engage" org-gtd-engage)
-       ("r" "organize" org-gtd-organize)
-       ])
-    (setf org-capture-templates
-          '(("i" "Inbox" entry (file "~/Dropbox/org/inbox.org")
-             "* %?\n%U\n" :prepend t)
-            ("t" "Task" entry (file "~/Dropbox/org/inbox.org")
-             "* TODO %?\n%U\n" :prepend t)
-            ;; Add other templates here
-            ))
-    :bind (("C-c n" . my/org-gtd-transient-menu))
-    :init (setf org-gtd-update-ack "3.0.0"))
-#+end_src
-
-#+RESULTS:
-: [nil 26491 37845 593845 nil elpaca-process-queues nil nil 569000 nil]
-
-** org-roam
-org roam is a lot like obsidian which all the young one rave about
-these days.
-#+begin_src emacs-lisp
-  (use-package org-roam
-    :config
-    (setf org-roam-directory "~/Dropbox/org/roam/"
-          org-roam-db-autosync-mode t))
 #+end_src
 
 ** Garbage Collector Magic Hack
@@ -802,7 +779,7 @@ some configuration for debugging slides
   (use-package aggressive-indent)
   ;; Enable paredit for Common Lisp programming
   (add-hook 'lisp-mode-hook #'aggressive-indent-mode)
-
+  (add-hook 'emacs-lisp-mode-hook #'aggressive-indent-mode)
   ;; Enable paredit for Emacs Lisp programming
   (defun my-setup-check-parens ()
     "Set up check-parens, but only in =emacs-lisp-mode'."
@@ -1022,14 +999,15 @@ shared namespaces of emacs
 ** Azure-devops-org
 #+name:az-devops
 #+begin_src emacs-lisp :tangle no :noweb yes
-  (use-package azure-devops-org
-    :ensure nil
-    :after request-deferred
-    :config
-    (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
-                                                                :user "credential")
-          azure-devops-org-project "Clever"
-          azure-devops-org-organization "cleveras"))
+    (use-package azure-devops-org
+      :ensure nil
+      :after promise
+      :config
+      (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
+                                                                  :user "credential")
+            azure-devops-org-project "Clever"
+            azure-devops-org-organization "cleveras")
+      (add-to-list 'azure-devops-org-todo-states "Ready for QA"))
 
 #+end_src
 
@@ -1051,7 +1029,7 @@ shared namespaces of emacs
 
 ** package ~development~
 #+begin_src emacs-lisp
-  (use-package request-deferred)
+  (use-package promise)
   (use-package emacsql)
   (use-package triples)
 #+end_src
@@ -1106,6 +1084,17 @@ shared namespaces of emacs
 #+RESULTS:
 : ledger-reports-transient
 
+
+* org
+#+begin_src emacs-lisp
+  (setf org-hide-leading-stars t)
+  (setf org-startup-indented t)
+  (setf org-pretty-entities t)
+  (setf org-agenda-files '("~/org/azure-devops.org"))
+#+end_src
+
+#+RESULTS:
+: t
 
 * Wrap Up
 ** Guix Emacs Profile

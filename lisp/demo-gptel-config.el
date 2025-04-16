@@ -272,21 +272,25 @@ of present tense and how it is a noun phrase."))
     (setopt gptel-directives
             `((default . ,(concat base "\n\n" first-line)))))
   :config
-  (setq gptel-model 'claude-3-sonnet-20241022 ;  "claude-3-opus-20240229" also available
-          gptel-backend (gptel-make-anthropic "Claude"
-                          :stream t :key (auth-source-pick-first-password :host "Claude" :user "password")))
-  (setq gptel-tools
-        (list
-         (gptel-make-tool
-          :function #'pmx--gptel-eval
-          :name "elisp_eval"
-          :confirm t
-          :include t
-          :category "introspection"
-          :args '(( :name "expression"
-                    :type string
-                    :description "A single elisp sexp to evaluate."))
-          :description "Evaluate Elisp EXPRESSION and return result.
+  ;; (setq gptel-model 'claude-3-sonnet-20241022 ;  "claude-3-opus-20240229" also available
+  ;;         gptel-backend (gptel-make-anthropic "Claude"
+  ;;                         :stream t :key (auth-source-pick-first-password :host "Claude" :user "password")))
+
+  (setq gptel-model   'deepseek-chat
+        gptel-backend (gptel-make-deepseek "DeepSeek"
+                        :stream t
+                        :key (auth-source-pick-first-password :host "DeepSeek" :user "api-key")))
+  (list
+   (gptel-make-tool
+    :function #'pmx--gptel-eval
+    :name "elisp_eval"
+    :confirm t
+    :include t
+    :category "introspection"
+    :args '(( :name "expression"
+              :type string
+              :description "A single elisp sexp to evaluate."))
+    :description "Evaluate Elisp EXPRESSION and return result.
 EXPRESSION can be anything will evaluate.  It can be a function call, a
 variable, a quasi-quoted expression.  The only requirement is that only
 the first sexp will be read and evaluated, so if you need to evaluate
@@ -306,53 +310,53 @@ representation that can be read and will be represented with
 You can use this to quickly change a user setting, check a variable, or
 demonstrate something to the user.")
 
-         (gptel-make-tool
-          :function #'pmx--gptel-symbolp
-          :name "symbol_exists"
-          :include t
-          :category "introspection"
-          :args '(( :name "symbol"
-                    :type string
-                    :description "A symbol that will be in `obarray' if they \
+   (gptel-make-tool
+    :function #'pmx--gptel-symbolp
+    :name "symbol_exists"
+    :include t
+    :category "introspection"
+    :args '(( :name "symbol"
+              :type string
+              :description "A symbol that will be in `obarray' if they \
 actually exist"))
-          :description "Check if SYMBOL exists in `obarray'. \
+    :description "Check if SYMBOL exists in `obarray'. \
 Returns the name of a symbol if that symbol has been interned or \"nil\"
 if not.  Uses `intern-soft' to perform the check.  This tool is
 extremely cheap to call.")
 
-         (gptel-make-tool
-          :function #'pmx--gptel-load-paths
-          :name "load_paths"
-          :include t
-          :category "introspection"
-          :args nil
-          :description "Return the users load paths.
+   (gptel-make-tool
+    :function #'pmx--gptel-load-paths
+    :name "load_paths"
+    :include t
+    :category "introspection"
+    :args nil
+    :description "Return the users load paths.
 This can reveal information about what packages the user has available.
 You can also learn about what kind of package management they are using
 and which packages are likely shadowed by their Elisp dependency
 manager.  The location of default packages can tell you about the user's
 Emacs installation.")
 
-         (gptel-make-tool
-          :function #'pmx--gptel-features
-          :name "features"
-          :include t
-          :category "introspection"
-          :args nil
-          :description "Return the list of loaded features.
+   (gptel-make-tool
+    :function #'pmx--gptel-features
+    :name "features"
+    :include t
+    :category "introspection"
+    :args nil
+    :description "Return the list of loaded features.
 This tool can be used to see what packages are already loaded in the
 running Emacs.  Use this to understand the user's typical set of
 packages and typical usage patterns.  Especially if the solution depends
 on the user's choice of packages, you will want to look at the features
 and load paths.")
 
-         (gptel-make-tool
-          :function #'pmx--gptel-manual-names
-          :name "manual_names"
-          :include t
-          :category "introspection"
-          :args nil
-          :description "Return a list of available manual names.
+   (gptel-make-tool
+    :function #'pmx--gptel-manual-names
+    :name "manual_names"
+    :include t
+    :category "introspection"
+    :args nil
+    :description "Return a list of available manual names.
 Call this tool in order to determine if a particular manual is
 available.  This can also help determine which packages are available on
 the user's Emacs.  This tool is a good starting point for general
@@ -367,16 +371,16 @@ You will usually follow this call with a subsequent call to
 somewhat like a summary.  This call is extremely cheap and should be
 used liberally.")
 
-         (gptel-make-tool
-          :function #'pmx--gptel-manual-list-nodes
-          :name "manual_nodes"
-          :include t
-          :category "introspection"
-          :args '(( :name "manual"
-                    :type string
-                    :description "The name of the manual.
+   (gptel-make-tool
+    :function #'pmx--gptel-manual-list-nodes
+    :name "manual_nodes"
+    :include t
+    :category "introspection"
+    :args '(( :name "manual"
+              :type string
+              :description "The name of the manual.
 Examples include \"cl\", \"elisp\", or \"transient\"."))
-          :description "Retrieve a listing of topic nodes within MANUAL.
+    :description "Retrieve a listing of topic nodes within MANUAL.
 Return value is a list of all nodes in MANUAL.  The list of topic nodes
 provides a good summary of MANUAL.
 
@@ -395,21 +399,21 @@ Emacs manual contains descriptions about built-in features and behavior
 that can be used to understand the context for what is being programmed
 in the Elisp manual.")
 
-         (gptel-make-tool
-          :function #'pmx--gptel-manual-node-contents
-          :name "manual_node_contents"
-          :include t
-          :category "introspection"
-          :args '(( :name "manual_name"
-                    :type string
-                    :description "The name of MANUAL.
+   (gptel-make-tool
+    :function #'pmx--gptel-manual-node-contents
+    :name "manual_node_contents"
+    :include t
+    :category "introspection"
+    :args '(( :name "manual_name"
+              :type string
+              :description "The name of MANUAL.
 Examples manuals include \"cl\", \"elisp\", or \"transient\".")
-                  ( :name "node"
-                    :type string
-                    :description "The name of the NODE in a MANUAL.
+            ( :name "node"
+              :type string
+              :description "The name of the NODE in a MANUAL.
 Example nodes from the elisp manual include \"Records\" or \"Sequences
 Arrays \ Vectors\"."))
-          :description "Retrieve the contents of NODE in MANUAL.
+    :description "Retrieve the contents of NODE in MANUAL.
 The return value is the full contents of NODE in MANUAL.  Contents
 include high-level grouping of related functions and variables.  Hidden
 behavior is described.  This tool is awesome!  You should try to call it
@@ -431,15 +435,15 @@ recursively.
 If both Elisp and Emacs manuals are available, open both but prefer Elisp manual
 style language anc content.")
 
-         (gptel-make-tool
-          :function #'pmx--gptel-featurep
-          :name "features"
-          :include t
-          :category "introspection"
-          :args '(( :name "feature"
-                    :type string
-                    :description "FEATURE to look for."))
-          :description "Check if FEATURE is loaded or available.
+   (gptel-make-tool
+    :function #'pmx--gptel-featurep
+    :name "features"
+    :include t
+    :category "introspection"
+    :args '(( :name "feature"
+              :type string
+              :description "FEATURE to look for."))
+    :description "Check if FEATURE is loaded or available.
 Returns non-nil if FEATURE is loaded or available for loading.  Not all
 users have all features loaded.  Before recommending the user to try a
 particular solution, you might check if the necessary features are
@@ -447,15 +451,15 @@ loaded.  If you are using all built-in Emacs libraries, you don't need
 to check.  Use this mainly to check for 3rd party packages that the user
 would obtain from MELPA and Non-GNU ELPA etc.")
 
-         (gptel-make-tool
-          :function #'pmx--gptel-library-source
-          :name "library_source"
-          :include t
-          :category "introspection"
-          :args '(( :name "library"
-                    :type string
-                    :description "LIBRARY to look for."))
-          :description "Read the source code for LIBRARY.
+   (gptel-make-tool
+    :function #'pmx--gptel-library-source
+    :name "library_source"
+    :include t
+    :category "introspection"
+    :args '(( :name "library"
+              :type string
+              :description "LIBRARY to look for."))
+    :description "Read the source code for LIBRARY.
 LIBRARY can either be a C or Elisp source code library.  Examples would
 include \"transient\" or \"fns.c\".  When looking for C libraries, they
 must contain the .c suffix.
@@ -471,16 +475,16 @@ function or variable completions and those symbols are not in the
 top-level package, there are likely sub-packages and you should
 recursively look them up.")
 
-         (gptel-make-tool
-          :name "symbol_manual_section"
-          :include t
-          :function #'pmx--gptel-symbol-in-manual
-          :category "introspection"
-          :args '(( :name "symbol"
-                    :type string
-                    :description "Name of a SYMBOL, such as \
+   (gptel-make-tool
+    :name "symbol_manual_section"
+    :include t
+    :function #'pmx--gptel-symbol-in-manual
+    :category "introspection"
+    :args '(( :name "symbol"
+              :type string
+              :description "Name of a SYMBOL, such as \
 \"find-file-noselect\"."))
-          :description "Returns contents of manual node for SYMBOL.
+    :description "Returns contents of manual node for SYMBOL.
 SYMBOL can be a function, macro, defcustom, or defvar.  If symbol is not
 known to be in a manual, this functon will return nil.
 
@@ -492,16 +496,16 @@ returns nil.
 If you can't find anything, you should try looking up its source or
 docstring next and finally try to complete the prefix of the symbol .")
 
-         (gptel-make-tool
-          :name "function_source"
-          :include t
-          :function #'pmx--gptel-function-source
-          :category "introspection"
-          :args '(( :name "function"
-                    :type string
-                    :description "Name of a FUNCTION, such as \
+   (gptel-make-tool
+    :name "function_source"
+    :include t
+    :function #'pmx--gptel-function-source
+    :category "introspection"
+    :args '(( :name "function"
+              :type string
+              :description "Name of a FUNCTION, such as \
 \"find-file-noselect\"."))
-          :description "Returns the source code for FUNCTION.
+    :description "Returns the source code for FUNCTION.
 Return the source code for FUNCTION.  FUNCTION can be a function or
 macro.  The signature and docstring can supply extremely valuable
 information about how to call a function correctly and what behaviors
@@ -519,16 +523,16 @@ incomplete, you can try returning the docstring using
 `function_documentation' or the entire source for a library feature by
 using `library_source'.  This tool is cheap.  Use it liberally.")
 
-         (gptel-make-tool
-          :name "variable_source"
-          :function #'pmx--gptel-variable-source
-          :category "introspection"
-          :include t
-          :args '(( :name "variable"
-                    :type string
-                    :description "Name of a VARIABLE, such as \
+   (gptel-make-tool
+    :name "variable_source"
+    :function #'pmx--gptel-variable-source
+    :category "introspection"
+    :include t
+    :args '(( :name "variable"
+              :type string
+              :description "Name of a VARIABLE, such as \
 \"last-kbd-macro\"."))
-          :description "Returns the source code for VARIABLE.
+    :description "Returns the source code for VARIABLE.
 Return value is the source code for VARIABLE.  VARIABLE can be a defvar
 or defcustom.  The returned source code can be extremely insightful
 because nothing is more accurate than looking at the code and the source
@@ -541,17 +545,17 @@ docstring using `variable_documentation' or the entire source for a
 library feature by using `library_source'.  This tool is cheap and fast.
 Call it liberally.")
 
-         (gptel-make-tool
-          :name "variable_value"
-          :function #'pmx--gptel-variable-global-value
-          :category "introspection"
-          :confirm t
-          :include t
-          :args '(( :name "variable"
-                    :type string
-                    :description "Name of a VARIABLE, such as \
+   (gptel-make-tool
+    :name "variable_value"
+    :function #'pmx--gptel-variable-global-value
+    :category "introspection"
+    :confirm t
+    :include t
+    :args '(( :name "variable"
+              :type string
+              :description "Name of a VARIABLE, such as \
 \"last-kbd-macro\"."))
-          :description "Returns the global value for VARIABLE.
+    :description "Returns the global value for VARIABLE.
 Return value is the global (not buffer-local) value for VARIABLE.
 VARIABLE can be a defvar or defcustom.  Use this when behavior depends
 on the state of a variable or you want to infer if a package has indeed
@@ -565,47 +569,47 @@ If the result is confusing, you can try returning the docstring using
 `variable_documentation' to gain insights into the structure of values
 contained.")
 
-         (gptel-make-tool
-          :name "function_documentation"
-          :function #'pmx--gptel-function-documentation
-          :category "introspection"
-          :include t
-          :args '(( :name "function"
-                    :type string
-                    :description "Name of a FUNCTION, such as \"mapcar\"."))
-          :description "Returns the docstring for FUNCTION.
+   (gptel-make-tool
+    :name "function_documentation"
+    :function #'pmx--gptel-function-documentation
+    :category "introspection"
+    :include t
+    :args '(( :name "function"
+              :type string
+              :description "Name of a FUNCTION, such as \"mapcar\"."))
+    :description "Returns the docstring for FUNCTION.
 Return value is a docstring for FUNCTION.  FUNCTION can be a function or
 macro.  Can be used to infer the purpose or correct forms for arguments
 and behavior changes related to those arguments.  This is more reliable
 than `function_source', so if `function_source' seems off, try this.
 This tool is very cheap and very fast.  Call it very liberally.")
 
-         (gptel-make-tool
-          :name "variable_documentation"
-          :function #'pmx--gptel-variable-documentation
-          :category "introspection"
-          :include t
-          :args '(( :name "variable"
-                    :type string
-                    :description "Name of a VARIABLE, such as \
+   (gptel-make-tool
+    :name "variable_documentation"
+    :function #'pmx--gptel-variable-documentation
+    :category "introspection"
+    :include t
+    :args '(( :name "variable"
+              :type string
+              :description "Name of a VARIABLE, such as \
 \"cursor-type\"."))
-          :description "Returns the docstring VARIABLE.
+    :description "Returns the docstring VARIABLE.
 Return value is a docstring for VARIABLE.  VARIABLE can be a defcustom
 or defvar.  Can be used to infer the correct forms for setting a
 variable, such as when configuring packages in use-package expressions
 or leading the user through diagnosing something.  This tool is very
 cheap and very fast.  Call it very liberally.")
 
-         ;; TODO this tool can complete out of order using orderless
-         (gptel-make-tool
-          :name "function_completions"
-          :function #'pmx--gptel-function-completions
-          :category "introspection"
-          :include t
-          :args '(( :name "function_prefix"
-                    :type string
-                    :description "FUNCTION_PREFIX of functions you are searching for."))
-          :description "Returns a list of functions beginning with FUNCTION_PREFIX.
+   ;; TODO this tool can complete out of order using orderless
+   (gptel-make-tool
+    :name "function_completions"
+    :function #'pmx--gptel-function-completions
+    :category "introspection"
+    :include t
+    :args '(( :name "function_prefix"
+              :type string
+              :description "FUNCTION_PREFIX of functions you are searching for."))
+    :description "Returns a list of functions beginning with FUNCTION_PREFIX.
 Use this to prepare for subsequent calls to `function_source' or
 `function_documentation' to look up the source code or docstrings of
 multiple functions.  You can also use this tool to verify which
@@ -614,16 +618,16 @@ functions defined in foo and its sub-packages, you this tool is a very
 good starting point.  This tool is very cheap and very fast.  Call it
 very liberally.")
 
-         ;;
-         (gptel-make-tool
-          :name "command_completions"
-          :function #'pmx--gptel-command-completions
-          :category "introspection"
-          :include t
-          :args '(( :name "command_prefix"
-                    :type string
-                    :description "COMMAND_PREFIX of commands you are searching for."))
-          :description "Returns a list of commands beginning with COMMAND_PREFIX.
+   ;;
+   (gptel-make-tool
+    :name "command_completions"
+    :function #'pmx--gptel-command-completions
+    :category "introspection"
+    :include t
+    :args '(( :name "command_prefix"
+              :type string
+              :description "COMMAND_PREFIX of commands you are searching for."))
+    :description "Returns a list of commands beginning with COMMAND_PREFIX.
 This tool is very similar to `function_completions' but will only return
 commands that can be called interactively.  This can tell you about the
 entry points where a user begins interacting with a package.  Because
@@ -631,16 +635,16 @@ commands are functions, you will follow up this tool with calls to
 `function_source' and `function_documentation'.  This tool is very cheap
 and very fast.  Call it very liberally.")
 
-         ;; TODO this tool can complete out of order using orderless
-         (gptel-make-tool
-          :name "variable_completions"
-          :function #'pmx--gptel-variable-completions
-          :category "introspection"
-          :include t
-          :args '(( :name "variable_prefix"
-                    :type string
-                    :description "VARIABLE_PREFIX of variables you are searching for."))
-          :description "Returns a list of variables beginning with VARIABLE_PREFIX.
+   ;; TODO this tool can complete out of order using orderless
+   (gptel-make-tool
+    :name "variable_completions"
+    :function #'pmx--gptel-variable-completions
+    :category "introspection"
+    :include t
+    :args '(( :name "variable_prefix"
+              :type string
+              :description "VARIABLE_PREFIX of variables you are searching for."))
+    :description "Returns a list of variables beginning with VARIABLE_PREFIX.
 The variables returned include defvars and custom variables.  Defvars
 tell you what states a package relies on for its implementation.
 Defcustom tells you what configuration options the user should know
@@ -653,106 +657,110 @@ multiple variables.  If you want to search for all variables defined
 under a prefix, you this tool is a very good starting point.  This tool
 is very cheap and very fast.  Call it very liberally.")
 
-         (gptel-make-tool
-          :name "simulate_error"
-          :function #'pmx--gptel-simulate-error
-          :category "testing"
-          :args nil
-          :description "A tool that can simulate an error.
+   (gptel-make-tool
+    :name "simulate_error"
+    :function #'pmx--gptel-simulate-error
+    :category "testing"
+    :args nil
+    :description "A tool that can simulate an error.
 This tool always returns an error.  It is useful for testing error
 behavior.  When the user asks you to use this tool, you should
 absolutely use it.")
 
-         (gptel-make-tool
-          :name "coerce_nil"
-          :function #'pmx--gptel-coerce-nil
-          :category "testing"
-          :args nil
-          :description "A tool that returns nil.
+   (gptel-make-tool
+    :name "coerce_nil"
+    :function #'pmx--gptel-coerce-nil
+    :category "testing"
+    :args nil
+    :description "A tool that returns nil.
 Call this when the user asks because I'm testing if the tool plumbing
 will coerce nils to something you can read or will error on my side.")
 
-         (gptel-make-tool
-          :name "all_arg_types"
-          :function #'pmx--gptel-all-arg-types
-          :category "testing"
-          :include t
-          :args '((:name "an_object" :type object :description "A basic object"
-                         :properties (:foo (:type integer :description "Use 42"))
-                         :required ["foo"])
-                  (:name "string" :type string :description "A string")
-                  (:name "array" :type array :description "An array")
-                  (:name "null" :type null :description "A null")
-                  (:name "true" :type boolean :description "Must be true")
-                  (:name "false" :type boolean :description "Must be false"))
-          :description "A function the user wants to test out.")))
+   (gptel-make-tool
+    :name "all_arg_types"
+    :function #'pmx--gptel-all-arg-types
+    :category "testing"
+    :include t
+    :args '((:name "an_object" :type object :description "A basic object"
+                   :properties (:foo (:type integer :description "Use 42"))
+                   :required ["foo"])
+            (:name "string" :type string :description "A string")
+            (:name "array" :type array :description "An array")
+            (:name "null" :type null :description "A null")
+            (:name "true" :type boolean :description "Must be true")
+            (:name "false" :type boolean :description "Must be false"))
+    :description "A function the user wants to test out.")))
 
-  ;; I like to be brought to the end of the chat after a response has finished.
-  ;; This only works with chat-like workflows.
-  (defun pmx--gptel-post-insert (beg end)
-    (when (> (point-max) (window-end))
-      (scroll-up-line 2))
-    (goto-char end))
+;; I like to be brought to the end of the chat after a response has finished.
+;; This only works with chat-like workflows.
+(defun pmx--gptel-post-insert (beg end)
+  (when (> (point-max) (window-end))
+    (scroll-up-line 2))
+  (goto-char end))
 
-  (add-to-list 'gptel-post-response-functions #'pmx--gptel-post-insert)
-  ;; (remove-hook 'gptel-post-response-functions #'pmx--gptel-post-insert)
+;; (add-to-list 'gptel-post-response-functions #'pmx--gptel-post-insert)
+;; (remove-hook 'gptel-post-response-functions #'pmx--gptel-post-insert)
 
-  ;; XXX has scrolled in wrong window.  Hope it's fixed.
-  (defun pmx--gptel-after-insert-scroll (response info &rest _args)
-    (when-let* ((tracking (plist-get info :tracking-marker))
-                (buffer (marker-buffer tracking))
-                (window (get-buffer-window buffer)))
-      (with-current-buffer (marker-buffer tracking)
-        (with-selected-window window
-          (when (> (marker-position tracking) (window-end window))
-            (let ((end-line (line-number-at-pos (marker-position tracking)))
-                  (window-end-line (line-number-at-pos (window-end window))))
-              (ignore-error 'end-of-buffer
-                (scroll-up-line (+ 2 ( - end-line window-end-line))))))))))
+;; XXX has scrolled in wrong window.  Hope it's fixed.
+(defun pmx--gptel-after-insert-scroll (response info &rest _args)
+  (when-let* ((tracking (plist-get info :tracking-marker))
+              (buffer (marker-buffer tracking))
+              (window (get-buffer-window buffer)))
+    (with-current-buffer (marker-buffer tracking)
+      (with-selected-window window
+        (when (> (marker-position tracking) (window-end window))
+          (let ((end-line (line-number-at-pos (marker-position tracking)))
+                (window-end-line (line-number-at-pos (window-end window))))
+            (ignore-error 'end-of-buffer
+              (scroll-up-line (+ 2 ( - end-line window-end-line))))))))))
 
-  (advice-add #'gptel--insert-response :after #'pmx--gptel-after-insert-scroll)
-  (advice-add #'gptel-curl--stream-insert-response :after
-              #'pmx--gptel-after-insert-scroll)
+(advice-add #'gptel--insert-response :after #'pmx--gptel-after-insert-scroll)
+(advice-add #'gptel-curl--stream-insert-response :after
+            #'pmx--gptel-after-insert-scroll)
 
-  ;; (remove-hook 'gptel-post-response-functions 'gptel-end-of-response)
-  ;; (remove-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
+;; (remove-hook 'gptel-post-response-functions 'gptel-end-of-response)
+;; (remove-hook 'gptel-post-stream-hook 'gptel-auto-scroll)
 
-  ;; Removes some unwanted empty lines (my org headings have line-spacing and
-  ;; line-height)
-  (defun pmx--gptel-remove-empty-line (_beg end)
-    (save-excursion
-      (goto-char end)
-      (previous-line)
-      (when (looking-at "^$")
-        (delete-char -1 ))))
+;; Removes some unwanted empty lines (my org headings have line-spacing and
+;; line-height)
+(defun pmx--gptel-remove-empty-line (_beg end)
+  (save-excursion
+    (goto-char end)
+    (previous-line)
+    (when (looking-at "^$")
+      (delete-char -1 ))))
 
-  (add-hook 'gptel-post-response-functions #'pmx--gptel-remove-empty-line)
+;;(add-hook 'gptel-post-response-functions #'pmx--gptel-remove-empty-line)
 
-  ;; Set this to "\n\n" if you prefer blank line separations.
-  (setopt gptel-response-separator "\n")
-  ;; use auto after you set :confirm t on tools that are dangerous
-  (setopt gptel-confirm-tool-calls t)
-  (setopt gptel-use-tools t)
-  ;; TODO gptel buffer is not selected when created
-  (setopt gptel-display-buffer-action '(display-buffer-in-previous-window))
-  ;; TODO setting this to t is fragile.  UX is poor without better indication of
-  ;; assistant versus user visual cues.
-  (setopt gptel-org-branching-context nil)
+;; Set this to "\n\n" if you prefer blank line separations.
+(setopt gptel-response-separator "\n")
+;; use auto after you set :confirm t on tools that are dangerous
+(setopt gptel-confirm-tool-calls t)
+(setopt gptel-use-tools t)
+;; TODO gptel buffer is not selected when created
+(setopt gptel-display-buffer-action '(display-buffer-in-previous-window))
+;; TODO setting this to t is fragile.  UX is poor without better indication of
+;; assistant versus user visual cues.
+(setopt gptel-org-branching-context nil)
 
-  (setopt gptel-prompt-prefix-alist
-          '((markdown-mode . "##")
-            (org-mode . "** ")
-            (text-mode . "**")))
-  ;; The LLM is instructed in its prompt to begin its first line with a
-  ;; third-level heading.  This works with a decent success rate.  It also
-  ;; prevents the situation where gptel inserts a prefix and then immediately
-  ;; the LLM calls a tool, creating a dangling prefix
-  (setopt gptel-response-prefix-alist
-          '((markdown-mode . "")
-            (org-mode . "")
-            (text-mode . "")))
+(setopt gptel-prompt-prefix-alist
+        '((markdown-mode . "##")
+          (org-mode . "** ")
+          (text-mode . "**")))
+;; The LLM is instructed in its prompt to begin its first line with a
+;; third-level heading.  This works with a decent success rate.  It also
+;; prevents the situation where gptel inserts a prefix and then immediately
+;; the LLM calls a tool, creating a dangling prefix
+(setopt gptel-response-prefix-alist
+        '((markdown-mode . "")
+          (org-mode . "")
+          (text-mode . "")))
 
-  (setopt gptel-default-mode 'org-mode))
+;; (gptel-make-anthropic "Claude"
+;;   :stream t :key (auth-source-pick-first-password :host "Claude" :user "password"))
+;; (gptel-make-gemini "Gemini"
+;;   :stream t :key (auth-source-pick-first-password :host "Google" :user "gemini-api-key"))
+(setopt gptel-default-mode 'org-mode)
 
 (provide 'demo-gptel-config)
 ;;; demo-gptel-config.el ends here
