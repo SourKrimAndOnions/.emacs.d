@@ -9,7 +9,7 @@ professional work
 bootstrapping elpaca
 #+begin_src emacs-lisp
   ;;bootstrap copied from instructions
-  (defvar elpaca-installer-version 0.10)
+  (defvar elpaca-installer-version 0.11)
   (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
   (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
   (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
@@ -999,20 +999,22 @@ shared namespaces of emacs
 ** Azure-devops-org
 #+name:az-devops
 #+begin_src emacs-lisp :tangle no :noweb yes
-    (use-package azure-devops-org
-      :ensure nil
-      :after promise
-      :config
-      (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
-                                                                  :user "credential")
-            azure-devops-org-project "Clever"
-            azure-devops-org-organization "cleveras")
-      (add-to-list 'azure-devops-org-todo-states "Ready for QA"))
-
+  (use-package azure-devops-org
+    :ensure (azure-devops-org :type git
+                              :host github
+                              :protocol ssh
+                              :repo "SourKrimAndOnions/azure-devops.el")
+    :after (promise emacsql)
+    :config
+    (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
+                                                                :user "credential")
+          azure-devops-org-project "Clever"
+          azure-devops-org-organization "cleveras")
+    (add-to-list 'azure-devops-org-todo-states "Ready for QA"))
 #+end_src
 
 #+RESULTS: az-devops
-: cleveras
+: [nil 26623 43935 242774 nil elpaca-process-queues nil nil 525000 nil]
 
 #+RESULTS:
 : cleveras
