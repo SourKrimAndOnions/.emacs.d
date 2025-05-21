@@ -64,6 +64,33 @@ bootstrapping elpaca
      (convert-standard-filename
       (expand-file-name  "var/eln-cache/" user-emacs-directory))))
 
+  (setq modus-themes-operandi-color-overrides
+        '(;; Subtle background adjustments
+          (bg-main . "#f8f9fc")
+          (bg-dim . "#f2f3f7")
+          (bg-alt . "#e9ecf2")
+
+          ;; Keep strong text contrast
+          (fg-main . "#000000")  ;; Maintain original black text
+
+          ;; Improved UI elements without changing text colors
+          (bg-paren-match . "#e0e7ff")
+          (bg-region . "#d0d7e6")
+          (bg-tab-active . "#edf2fc")
+          (bg-hl-line . "#eef1f8")))
+
+  ;; Enhance modeline
+  (setq modus-themes-mode-line '(accented borderless))
+
+  ;; Better heading structure
+  (setq modus-themes-headings
+        '((1 . (variable-pitch 1.5 semibold))
+          (2 . (variable-pitch 1.3 semibold))
+          (3 . (variable-pitch 1.1 semibold))
+          (t . (variable-pitch 1.0 regular))))
+
+  ;; If you use Org mode, this gives nicer block styling
+  (setq modus-themes-org-blocks 'gray-background)
   (load-theme 'modus-operandi t)
 #+end_src
 
@@ -110,7 +137,6 @@ bootstrapping elpaca
       :ensure nil
       :config
       (save-place-mode 1) ; visit files at same position
-      (delete-selection-mode -1) ; Actions on active region will delete called with 1
       (show-paren-mode 1)
       (setopt
        ;; https://www.reddit.com/r/emacs/comments/kgv4fj/problems_in_org_trello_error_requestcurlsync/
@@ -304,9 +330,14 @@ bootstrapping elpaca
              (fsharp . t)
              (restclient . t)
              (powershell . t)
+             (lisp . t)
              (csharp . t)
-             (http . t)))))
+             (http . t))))
+    (setf org-babel-lisp-eval-fn 'sly-eval))
 #+end_src
+
+#+RESULTS:
+: [nil 26640 30096 86940 nil elpaca-process-queues nil nil 228000 nil]
 
 ** formatting
 #+begin_src emacs-lisp
@@ -999,22 +1030,23 @@ shared namespaces of emacs
 ** Azure-devops-org
 #+name:az-devops
 #+begin_src emacs-lisp :tangle no :noweb yes
-  (use-package azure-devops-org
-    :ensure (azure-devops-org :type git
-                              :host github
-                              :protocol ssh
-                              :repo "SourKrimAndOnions/azure-devops.el")
-    :after (promise emacsql)
-    :config
-    (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
-                                                                :user "credential")
-          azure-devops-org-project "Clever"
-          azure-devops-org-organization "cleveras")
-    (add-to-list 'azure-devops-org-todo-states "Ready for QA"))
+    (use-package azure-devops-org
+      :ensure (azure-devops-org :type git
+                                :host github
+                                :protocol ssh
+                                :repo "SourKrimAndOnions/azure-devops.el")
+      :after (promise emacsql)
+      :config
+      (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
+                                                                  :user "credential")
+            azure-devops-org-project "Clever"
+            azure-devops-org-organization "cleveras"
+            azure-devops-org-file (format "%s%s" (car org-directory) "azure-devops.org"))
+      (add-to-list 'azure-devops-org-todo-states "Ready for QA"))
 #+end_src
 
 #+RESULTS: az-devops
-: [nil 26623 43935 242774 nil elpaca-process-queues nil nil 525000 nil]
+: [nil 26653 51855 200360 nil elpaca-process-queues nil nil 445000 nil]
 
 #+RESULTS:
 : cleveras
@@ -1031,9 +1063,12 @@ shared namespaces of emacs
 
 ** package ~development~
 #+begin_src emacs-lisp
-  (use-package promise)
-  (use-package emacsql)
-  (use-package triples)
+      (use-package promise)
+      (use-package emacsql)
+      (use-package triples)
+      (use-package skewer-mode
+        :ensure t
+        :config (require 'trident-mode))
 #+end_src
 
 #+RESULTS:
@@ -1092,7 +1127,9 @@ shared namespaces of emacs
   (setf org-hide-leading-stars t)
   (setf org-startup-indented t)
   (setf org-pretty-entities t)
-  (setf org-agenda-files '("~/org/azure-devops.org"))
+  (setf org-agenda-files '("~/Dropbox/org/azure-devops.org"))
+  (setf org-directory '("~/Dropbox/org/"))
+  (add-hook 'org-cycle-hook #'org-cycle-hide-drawers)
 #+end_src
 
 #+RESULTS:
@@ -1113,6 +1150,6 @@ shared namespaces of emacs
 #+begin_src emacs-lisp :noweb yes
   (require 'compare-files)
   (require 'csharp-namespace)
-  <<az-devops>>
 
+  <<az-devops>>
 #+end_src
