@@ -1,0 +1,247 @@
+#+title:	Customizing GPTel
+#+author:	Positron
+#+email:	contact@positron.solutions
+
+* Defiling Your PC 🤠
+* Introducing GPTel
+- Almost 2k 󰊤 stars ⭐
+- Idiomatic Emacs
+- By u/Karthink. Check out [[https://karthinks.com/][karthinks]] blog!
+- Tool Use Feature 🚨
+#+begin_comment
+maximizing how the package harmonizes with Emacs fundamentals and
+makes it easy to extend the package and plug it into your workflows
+instead of plugging your workflows into it.
+
+The reason we're here today is because Karthink put out a post
+inviting feedback on a new tool use feature and I had some
+super-high-value use cases already ready to go
+#+end_comment
+* GPTel Configuration Basics
+** Highlight Face
+If you have a dark theme:
+#+begin_src elisp :eval no :exports none
+(set-face-attribute 'pulse-highlight-start-face nil :background "#002E2C")
+#+end_src
+** Prompts
+- Use the =:init= block
+- Use =default= as a key
+  #+begin_src elisp :eval no
+    (use-package gptel
+      :init
+      (setopt gptel-directives '((default . "Do good jk lol"))))
+  #+end_src
+** Default Mode
+#+begin_src elisp :eval no
+  (setopt gptel-default-mode 'org-mode)
+#+end_src
+** Buffer Display
+#+begin_src elisp :eval no
+  (setopt gptel-display-buffer-action '(display-buffer-pop-up-window))
+#+end_src
+** Structure ⚠️
+#+begin_src elisp :eval no
+  (setopt gptel-prompt-prefix-alist
+          '((org-mode . "** ")))
+  (setopt gptel-response-prefix-alist
+          '((org-mode . "*** ")))
+#+end_src
+** Scrolling & Point Positioning
+#+begin_src elisp :eval no :exports none
+  (defun pmx--gptel-post-insert (beg end)
+    (when (> (point-max) (window-end))
+      (scroll-up-line 2))
+    (goto-char end))
+
+  (add-to-list 'gptel-post-response-functions #'pmx--gptel-post-insert)
+
+  (defun pmx--gptel-after-insert-scroll (response info)
+    (message "calling all hobos")
+    (when-let* ((tracking (plist-get info :tracking-marker))
+                (buffer (marker-buffer tracking))
+                (window (get-buffer-window buffer)))
+      (with-current-buffer (marker-buffer tracking)
+        (when (> (marker-position tracking) (window-end window))
+          (let ((end-line (line-number-at-pos (marker-position tracking)))
+                (window-end-line (line-number-at-pos (window-end window))))
+            (ignore-error 'end-of-buffer
+              (scroll-up-line (+ 2 ( - end-line window-end-line)))))))))
+
+  (advice-add #'gptel--insert-response :after #'pmx--gptel-after-insert-scroll)
+  (advice-add #'gptel-curl--stream-insert-response :after #'pmx--gptel-after-insert-scroll)
+#+end_src
+** Authentication
+~/.authinfo
+#+begin_src authinfo :eval no
+  machine api.openai.com password *****************************
+#+end_src
+** Set Tools
+#+begin_src elisp :eval no
+  (setq gptel-tools
+        `(,(gptel-make-tool
+            :function #'demacs--gptel-symbolp
+            :name "symbol_exists"
+            :args '(( :name "symbol"
+                      :type string
+                      :description "Name of symbol"))
+            :description "Check if SYMBOL exists in `obarray'.")))
+
+  ;; Consider using add-to-list to define tool interfaces next to
+  ;; functions they define.
+#+end_src
+* Building Tools
+:PROPERTIES:
+#+begin_comment
+at a really a tool is a combination of a function that we want the LLM to call
+
+And an interface declaration that tells our stringly typed natural language system how to try to call it with a reasonable succes rate.
+
+A tool is basically just a function where we have presented an interface to the LLM.  We've made a way for a stringly typed system to call pieces of programs with reasonable success rate
+#+end_comment
+#+begin_src elisp :exports none :results none :eval no
+  (defun my--gptel-symbolp (name)
+    (intern-soft name))
+
+  (gptel-make-tool
+   :function #my--gptel-symbolp
+   :name "symbol_exists"
+   :args '(( :name "symbol"
+             :type string
+             :description "An Elisp symbol"))
+   :description "Returns symbol if symbol exists.")
+#+end_src
+** Arguments
+- =:name=
+- =:description=
+- =:type=
+#+begin_comment
+The type also tells us how to deserialize the value coming from the LLM
+Just like a language server, LLMs run as server processes or network services that speak JSON over a network call
+#+end_comment
+*** Types  (JSON → Elisp)
+- =string=  → =string=            "foo"
+- =integer= → =integer=           42
+- =number=  → =float=             42.0
+- =array=   → =vector=            [4 2 0]
+- =boolean= → =t= or =:json-false=
+- =null=    → =nil=
+- =object=  → =plist=             (:foo 42)
+#+begin_comment
+~json-parse-string~
+~gptel--json-read~
+
+I built a test tool with every single type of argument, and the only
+tricky case was that because null is mapped to nil, the javascript
+boolean false is mapped to the keyword symbol :json-false.
+#+end_comment
+#+begin_src elisp :exports none :results none :eval no
+  ( :an_object (:foo 42)
+    :string "example"
+    :array [1 2 3]
+    :null nil
+    :true t
+    :false
+    :json-false)
+
+  (json-parse-string "foooooooooo")
+  "foooo"
+  (json-parse-string "2")
+  2
+  (json-parse-string "39.2")
+  39.2
+  (json-parse-string "[1, 2, 3, 4]")
+  [1 2 3 4]
+  (json-parse-string "null" :null-object nil)
+  nil
+  (json-parse-string "true")
+  t
+  (json-parse-string "false" :false-object :json-false)
+  :json-false
+  (json-parse-string "{\"foo\": \"bar\"}" :object-type 'plist)
+  (:foo "bar")
+#+end_src
+***  Object Types
+Use =:properties= to tell the LLM about the required object structure
+#+begin_src elisp :eval no
+  (:key_colors
+   ( :type array :items
+     ( :type object
+       :properties
+       ( :r (:type number :description "red value [0.0, 1.0]")
+         :g (:type number :description "green value [0.0, 1.0]")
+         :b (:type number :description "blue value [0.0, 1.0]"))
+       :required ["r" "g" "b"])
+     :description "key colors in the image."))
+#+end_src
+
+ℹ️ [[https://github.com/karthink/gptel/issues/514#issuecomment-2617848570][further details on Github]]
+#+begin_commentp
+One of the trickier argument types to specify is the object type
+These have to have a properies key to tell the LLM about the required object structure and a :required key to tell it which of the keys must be present in the JSON
+The values of objects can be objects themselves, requiring nested specifications
+I built an example a successful example pretty quickly
+But you might want to just stick to flat arguments and do some of the plumbing yourself.
+#+end_comment
+*** Intern Soft
+#+begin_src elisp :eval no
+  (defun pmx--gptel-symbolp (name)
+    (when-let ((symbol (intern-soft name)))
+      ;; do something with symbol
+      name))
+#+end_src
+#+begin_comment
+The last thing I want to point out about accepting arguments is that you might need the LLM to provide you with the name of a symbol, and the LLM can only give us a string, so if we need a symbol, we can run it through intern-soft and that will only give us a symbol if that symbol has actually been used somewhere.  That way we're not going to accidentally create symbols from whatever the LLM hallucinates.  so intern-soft is a good way to validate the input, to sort of look before we leap, and react accordingly
+#+end_comment
+** Return JSON
+*** JSON Serialize
+#+begin_src elisp :eval no
+  (defun pmx--gptel-features ()
+    (json-serialize (vconcat (mapcar #'symbol-name features))))
+#+end_src
+
+#+begin_comment
+In short, just run the results through json serialize
+or use something that would be returned from json serialize
+for no value, we can use the string null
+for false we can use the string false
+we just need something that will be intelligible as json on the other end.
+#+end_comment
+*** Boolean
+#+begin_src elisp :eval no
+  (defun pmx--gptel-emacs-new-p ()
+    (if (string-match-p "30" emacs-version)
+        "true"
+      "false")
+#+end_src
+*** Errors
+#+begin_src elisp :eval no
+  (defun pmx--gptel-library-source (library-name)
+    (if-let ((library (find-library-name library-name)))
+        (with-temp-buffer
+          (insert-file-contents library)
+          (buffer-string))
+      (error "Library not found: %s" library-name)))
+#+end_src
+** Register Tool
+#+begin_src elisp :exports none :results none
+  (gptel-make-tool
+   :function #'demacs--gptel-symbolp
+   :name "symbol_exists"
+   :args '(( :name "symbol"
+             :type string
+             :description "Check that symbol is in `obarray'."))
+   :description "Check if symbol exists in `obarray'.")
+#+end_src
+*** Behaviors
+:PROPERTIES:
+:DSLIDE_ACTIONS: dslide-action-item-reveal
+:END:
+- =:include=
+- =:confirm=
+- =:category=
+** Testing
+#+begin_comment
+Just ask the model to use the tool by name
+#+end_comment
+** COMMENT The Tool Spec
+- [[https://github.com/ahyatt/llm/discussions/124#discussioncomment-11877109]["the final spec"]]
