@@ -276,10 +276,16 @@ of present tense and how it is a noun phrase."))
   ;;         gptel-backend (gptel-make-anthropic "Claude"
   ;;                         :stream t :key (auth-source-pick-first-password :host "Claude" :user "password")))
 
-  (setq gptel-model   'deepseek-chat
-        gptel-backend (gptel-make-deepseek "DeepSeek"
-                        :stream t
-                        :key (auth-source-pick-first-password :host "DeepSeek" :user "api-key")))
+  ;; (setq gptel-model   'deepseek-chat
+  ;;       gptel-backend (gptel-make-deepseek "DeepSeek"
+  ;;                       :stream t
+  ;;                       :key (auth-source-pick-first-password :host "DeepSeek" :user "api-key")))
+  ;; OPTIONAL configuration
+  (setq
+   gptel-model 'gemini-2.5-flash-preview-04-17
+   gptel-backend (gptel-make-gemini "Gemini"
+                   :key "AIzaSyCqQ8aIgDMbftlmuaUFwSG4WNUcovqrjdg"
+                   :stream t))
   (list
    (gptel-make-tool
     :function #'pmx--gptel-eval
@@ -689,7 +695,90 @@ will coerce nils to something you can read or will error on my side.")
             (:name "null" :type null :description "A null")
             (:name "true" :type boolean :description "Must be true")
             (:name "false" :type boolean :description "Must be false"))
-    :description "A function the user wants to test out.")))
+    :description "A function the user wants to test out.")
+   (gptel-make-tool
+    :function #'pmx--gptel-sly-eval
+    :name "sly_eval"
+    :confirm t  ; Evaluation can have side effects in the Lisp process.
+    :include t
+    :category "common_lisp_introspection"
+    :args '((:name "expression"
+                   :type string
+                   :description "A Common Lisp expression string to evaluate in the SLY process."))
+    :description "Evaluate a Common Lisp EXPRESSION string in the currently connected SLY process.
+Returns the string representation of the primary result value from the Lisp evaluation.
+Note that output printed by the Lisp code (e.g., using =princ=, =format=, etc.) will appear in the SLY REPL buffer but is NOT returned by this tool.
+Use this tool to query the state of the Lisp environment, evaluate simple expressions, or inspect variables.
+This tool requires an active SLY session (started with M-x sly). It will signal an error if no connection is found.
+Be aware that evaluating arbitrary code can have side effects in the running Lisp process."
+    )
+   (gptel-make-tool
+    :function #'pmx--gptel-cl-symbol-exists
+    :name "cl_symbol_exists"
+    :include t
+    :category "common_lisp_introspection"
+    :args '((:name "symbol_name" :type string :description "The name of the Common Lisp symbol to check for.")
+            (:name "package_name" :type string :description "The name of the Common Lisp package to search in (e.g., \"CL-USER\")."))
+    :description "Check if a Common Lisp symbol exists in a specified package. Returns the symbol name string if found, or \"nil\"."
+    )
+
+   (gptel-make-tool
+    :function #'pmx--gptel-cl-documentation
+    :name "cl_documentation"
+    :include t
+    :category "common_lisp_introspection"
+    :args '((:name "symbol_name" :type string :description "The name of the Common Lisp symbol.")
+            (:name "type" :type string :description "The type of the symbol (e.g., \"function\", \"variable\", \"class\"). Optional, defaults to \"function\".")
+            (:name "package_name" :type string :description "The name of the Common Lisp package to search in (e.g., \"CL-USER\"). Optional, defaults to current package."))
+    :description "Get the documentation string for a Common Lisp symbol in a specified package and type."
+    )
+   ))
+
+(defun pmx--gptel-sly-eval (expression-string)
+  "Evaluate EXPRESSION-STRING in the current SLY Lisp process.
+Return the result formatted as a string, or signal an error if
+evaluation fails or no SLY connection is active."
+  (let* ((sexp (read expression-string))
+         (sly-result (sly-eval sexp)))
+    ;; sly-interactive-eval-string returns (VALUE-STRING . TYPE-STRING) on success
+    ;; or signals an error on failure.
+    sly-result))
+
+(defun pmx--gptel-cl-symbol-exists (symbol-name package-name)
+  "Check if COMMON LISP symbol SYMBOL-NAME exists in PACKAGE-NAME using =sly-eval=.
+Returns the symbol name string if found, or \"nil\"."
+  (let* ((expression (format "(let ((s (find-symbol \"%s\" \"%s\")))\n                                 (if s (symbol-name s) nil))"
+                             (replace-regexp-in-string "\"" "\\\\\"" symbol-name t)
+                             (replace-regexp-in-string "\"" "\\\\\"" package-name t)))
+         ;; Use the sly_eval tool (which calls pmx--gptel-sly-eval) to evaluate the CL form
+         ;; sly_eval returns a string representation of the result from the backend.
+         (sly-output-string (pmx--gptel-sly-eval expression))
+         ;; The sly_eval tool returns a list string like "(\"\" \"\\\"SYMBOL-NAME\\\"\")" or "(\"\" \"NIL\")"
+         ;; We need to parse this and extract the second element.
+         (parsed-output (read sly-output-string)))
+    ;; The second element of the parsed list is the string representation of the CL result
+    (prin1-to-string (cadr parsed-output))))
+
+(defun pmx--gptel-cl-documentation (symbol-name &optional type package-name)
+  "Get the documentation string for a COMMON LISP symbol SYMBOL-NAME in PACKAGE-NAME using =sly-eval=.
+TYPE can be 'function, 'variable, etc. Defaults to 'function if not specified.
+Returns the documentation string, or \"nil\" if no documentation is found."
+  (let* ((type-form (if type (format "'%S" type) "'function"))
+         (package-part (if package-name (format " (find-package \"%s\")" (replace-regexp-in-string "\"" "\\\\\"" package-name t)) ""))
+         (expression (format "(let ((s (find-symbol \"%s\"%s)))\n                                 (if s (documentation s %s) nil))"
+                             (replace-regexp-in-string "\"" "\\\\\"" symbol-name t)
+                             package-part
+                             type-form)))
+    ;; Use the sly_eval tool to evaluate the CL form
+    ;; sly_eval returns a string representation of the result from the backend.
+    (let* ((sly-output-string (pmx--gptel-sly-eval expression))
+           (parsed-output (read sly-output-string)))
+      ;; The second element of the parsed list is the string representation of the CL result
+      ;; Need to handle potential NIL result from documentation
+      (let ((doc-result (cadr parsed-output)))
+        (if (stringp doc-result)
+            (prin1-to-string doc-result)
+          "nil")))))
 
 ;; I like to be brought to the end of the chat after a response has finished.
 ;; This only works with chat-like workflows.

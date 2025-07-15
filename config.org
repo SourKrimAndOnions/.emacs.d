@@ -429,7 +429,7 @@ based on the prefix keys you entered.  Learned about this one from Spacemacs.
 : t
 ** Winner-mode
 #+begin_src emacs-lisp
-  (setf winner-mode 1)
+  (winner-mode 1)
 
   (use-package nerd-icons
     :ensure t)
@@ -516,121 +516,123 @@ navigation etc. available since you're in your editor.
 ** completion
 #+begin_src emacs-lisp
 
-  (use-package vertico
-    :config
-    (vertico-mode))
+      (use-package vertico
+        :config
+        (vertico-mode))
 
-  (use-package consult
-    :bind (([remap switch-to-buffer] . consult-buffer)
-           ([remap project-find-regexp] . consult-ripgrep)
-           ([remap imenu] . consult-imenu))
-    :after vertico)
+      (use-package consult
+        :bind (([remap switch-to-buffer] . consult-buffer)
+               ([remap project-find-regexp] . consult-ripgrep)
+               ([remap imenu] . consult-imenu))
+        :after vertico)
 
-  (use-package vertico-prescient
-    :after prescient
-    :config
-    (vertico-prescient-mode t))
+      (use-package vertico-prescient
+        :after prescient
+        :config
+        (vertico-prescient-mode t))
 
-    ;;; Completion at point
+        ;;; Completion at point
 
-  (use-package corfu
-    :config
-    (setopt corfu-cycle t)
-    (setopt corfu-auto t)
-    (setopt corfu-separator ?\s)          ; ?\s is " "
-    (setopt tab-always-indent 'complete)
-    (setopt corfu-min-width 30)
-    (setopt completion-ignore-case t)
-    (keymap-set corfu-map "RET" nil) ; aborts after newline
-    (global-corfu-mode 1))
+      (use-package corfu
+        :config
+        (setopt corfu-cycle t)
+        (setopt corfu-auto t)
+        (setopt corfu-separator ?\s)          ; ?\s is " "
+        (setopt tab-always-indent 'complete)
+        (setopt corfu-min-width 30)
+        (setopt completion-ignore-case t)
+        (keymap-set corfu-map "RET" nil) ; aborts after newline
+        (global-corfu-mode 1))
 
-  (use-package cape
-    :init
-    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-    (add-to-list 'completion-at-point-functions #'cape-file)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-    (add-to-list 'completion-at-point-functions #'cape-elisp-block))
+      (use-package cape
+        :init
+        (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+        (add-to-list 'completion-at-point-functions #'cape-file)
+        (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+        (add-to-list 'completion-at-point-functions #'cape-elisp-block))
 
-  (use-package consult-lsp
-    :ensure t)
+      (use-package consult-lsp
+        :ensure t)
 
-  (use-package consult-flycheck
-    :ensure t)
+      (use-package consult-flycheck
+        :ensure t)
 
-  (use-package lsp-mode
-    :commands (lsp lsp-deferred)
-    :hook ((csharp-mode . lsp-deferred)
-           ;; (fsharp-mode . lsp-deferred)
-           )
-    :bind ((:map lsp-mode-map
-                 ("S-M-SPC" . #'lsp-signature-activate)))
-    :config
-    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
-    (setq lsp-prefer-capf t)
-    (transient-define-prefix my/lsp-transient ()
-      "LSP commands"
-      [["Actions"
-        ("d" "Definition" lsp-find-definition)
-        ("?" "References" lsp-find-references)
-        ("i" "Implementation" lsp-find-implementation)
-        ("t" "Type Definition" lsp-find-type-definition)
-        ("s" "Symbol" consult-lsp-symbols)
-        ("f" "Format Buffer" lsp-format-buffer)
-        ("a" "Code Action" lsp-execute-code-action)]
-       ["Diagnostics"
-        ("n" "Next Diagnostic" flycheck-next-error)
-        ("p" "Previous Diagnostic" flycheck-previous-error)
-        ("l" "List Diagnostics" consult-flymake)]
-       ["Workspace"
-        ("R" "Restart Workspace" lsp-restart-workspace)
-        ("q" "Shutdown Workspace" lsp-shutdown-workspace)
-        ("r" "Rename Symbol" lsp-rename)]
-       ["Other"
-        ("m" "Toggle LSP Mode" lsp-mode)]]))
+      (use-package lsp-mode
+        :commands (lsp lsp-deferred)
+        :hook ((csharp-mode . lsp-deferred)
+               ;; (fsharp-mode . lsp-deferred)
+               )
+        :bind ((:map lsp-mode-map
+                     ("S-M-SPC" . #'lsp-signature-activate)))
+        :config
+        (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+        (setq lsp-prefer-capf t)
+        (transient-define-prefix my/lsp-transient ()
+          "LSP commands"
+          [["Actions"
+            ("d" "Definition" lsp-find-definition)
+            ("?" "References" lsp-find-references)
+            ("i" "Implementation" lsp-find-implementation)
+            ("t" "Type Definition" lsp-find-type-definition)
+            ("s" "Symbol" consult-lsp-symbols)
+            ("f" "Format Buffer" lsp-format-buffer)
+            ("a" "Code Action" lsp-execute-code-action)]
+           ["Diagnostics"
+            ("n" "Next Diagnostic" flycheck-next-error)
+            ("p" "Previous Diagnostic" flycheck-previous-error)
+            ("l" "List Diagnostics" consult-flymake)]
+           ["Workspace"
+            ("R" "Restart Workspace" lsp-restart-workspace)
+            ("q" "Shutdown Workspace" lsp-shutdown-workspace)
+            ("r" "Rename Symbol" lsp-rename)]
+           ["Other"
+            ("m" "Toggle LSP Mode" lsp-mode)]]))
 
 
-  ;; Make sure orderless works well with LSP
-  (use-package orderless
-    :config
-    (setopt completion-styles '(orderless basic))
-    (setopt completion-category-overrides '((file (styles basic partial-completion)))))
+      ;; Make sure orderless works well with LSP
+      (use-package orderless
+        :config
+        (setopt completion-styles '(orderless basic))
+        (setopt completion-category-overrides '((file (styles basic partial-completion)))))
+
   (use-package sly
-    :ensure t)
+        :ensure t
+        :config (setf inferior-lisp-program "/usr/local/bin/sbcl"))
 
-  (use-package sharper
-    :bind (("C-c d" . #'sharper-main-transient)))
+      (use-package sharper
+        :bind (("C-c d" . #'sharper-main-transient)))
 
-  (use-package fsharp-mode)
-  (add-hook 'web-mode-hook 'my-web-mode-hook)
-  (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
+      (use-package fsharp-mode)
+      (add-hook 'web-mode-hook 'my-web-mode-hook)
+      (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
 
-  ;; SLIME-Cape integration
-  (use-package yasnippet-capf
-    :ensure t
-    :after (cape yasnippet)
-    :config
-    (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+      ;; SLIME-Cape integration
+      (use-package yasnippet-capf
+        :ensure t
+        :after (cape yasnippet)
+        :config
+        (add-to-list 'completion-at-point-functions #'yasnippet-capf))
 
-  ;; Configure hippie-expand with YASnippet
-  (use-package yasnippet
-    :ensure t
-    :config
-    (yas-global-mode 1)
-    (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
-    (setq hippie-expand-try-functions-list
-          (cons 'yas-hippie-try-expand
-                (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
+      ;; Configure hippie-expand with YASnippet
+      (use-package yasnippet
+        :ensure t
+        :config
+        (yas-global-mode 1)
+        (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
+        (setq hippie-expand-try-functions-list
+              (cons 'yas-hippie-try-expand
+                    (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
 
-  (use-package yasnippet-snippets
-    :after yasnippet)
-  ;; Dabbrev configuration
-  (use-package dabbrev
-    :ensure nil  ; built-in package
-    :config
-    (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
-    (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
-    (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
-    :bind ([remap dabbrev-expand] . hippie-expand))
+      (use-package yasnippet-snippets
+        :after yasnippet)
+      ;; Dabbrev configuration
+      (use-package dabbrev
+        :ensure nil  ; built-in package
+        :config
+        (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
+        (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
+        (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
+        :bind ([remap dabbrev-expand] . hippie-expand))
 #+end_src
 
 #+RESULTS:
@@ -966,9 +968,6 @@ integrate 1password with emacs auth sources
   (require 'demo-gptel-config)
 #+end_src
 
-#+RESULTS:
-: [nil 26534 15895 651388 nil elpaca-process-queues nil nil 41000 nil]
-
 ** nameless
 helps with the inconvience in regards to reading function names of
 shared namespaces of emacs
@@ -1121,6 +1120,23 @@ shared namespaces of emacs
 #+RESULTS:
 : ledger-reports-transient
 
+
+* aider
+#+begin_src emacs-lisp
+  (use-package aidermacs
+      :ensure (aidermacs :type git
+                                :host github
+                                :protocol ssh
+                                :repo "MatthewZMD/aidermacs")
+
+    :bind (("C-c a" . aidermacs-transient-menu))
+    :config (setenv "GEMINI_API_KEY" "AIzaSyCqQ8aIgDMbftlmuaUFwSG4WNUcovqrjdg")
+    (setf aidermacs-default-chat-mode 'architect)
+    (setf aidermacs-default-model "gemini"))
+#+end_src
+
+#+RESULTS:
+: [nil 26722 29080 632364 nil elpaca-process-queues nil nil 514000 nil]
 
 * org
 #+begin_src emacs-lisp
