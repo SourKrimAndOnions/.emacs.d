@@ -39,5 +39,5 @@
 
 ;; If you use Org mode, this gives nicer block styling
 (setq modus-themes-org-blocks 'gray-background)
-(load-theme 'modus-operandi t)
+(load-theme 'modus-vivendi t)
 ;; early init:1 ends here

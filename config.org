@@ -91,7 +91,7 @@ bootstrapping elpaca
 
   ;; If you use Org mode, this gives nicer block styling
   (setq modus-themes-org-blocks 'gray-background)
-  (load-theme 'modus-operandi t)
+  (load-theme 'modus-vivendi t)
 #+end_src
 
 ** performance
@@ -451,40 +451,44 @@ where you browse code is immennsely freeing and you don't break you
 flow as much. On top of that you have all of your code search,
 navigation etc. available since you're in your editor.
 #+begin_src emacs-lisp
-  (use-package magit
-    :config
-    (setf magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1
-          magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1
-          magit-save-repository-buffers 'dontask
-          ediff-window-setup-function 'ediff-setup-windows-plain)
-    :bind (("C-c v" . #'my-git-commands)))
+     (with-eval-after-load 'elpaca
+         (add-to-list 'elpaca-ignored-dependencies 'cond-let))
+    (use-package cond-let
+      :ensure nil)
+    (use-package magit
+        :config
+        (setf magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1
+              magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1
+              magit-save-repository-buffers 'dontask
+              ediff-window-setup-function 'ediff-setup-windows-plain)
+        :bind (("C-c v" . #'my-git-commands)))
 
-  (use-package magit-todos)
+      (use-package magit-todos)
 
-  (use-package conventional-commit
-    :ensure (conventional-commit
-             :type git
-             :host github
-             :repo "akirak/conventional-commit.el")
-    :hook (git-commit-mode . conventional-commit-setup))
+      (use-package conventional-commit
+        :ensure (conventional-commit
+                 :type git
+                 :host github
+                 :repo "akirak/conventional-commit.el")
+        :hook (git-commit-mode . conventional-commit-setup))
 
-  (use-package git-timemachine
-    :ensure t)
+      (use-package git-timemachine
+        :ensure t)
 
-  (use-package git-cliff
-    :config
-    (setf git-cliff-executable "~/.cargo/bin/git-cliff"))
+      (use-package git-cliff
+        :config
+        (setf git-cliff-executable "~/.cargo/bin/git-cliff"))
 
-  (transient-define-prefix my-git-commands ()
-    "A transient for common git operations."
-    ["Git Commands"
-     ["Magit"
-      ("g" "Status" magit-status)
-      ("b" "blame" magit-blame-addition)
-      ("C" "Clone" magit-clone)
-      ]
-     ["Timemachine"
-      ("t" "Toggle Timemachine" git-timemachine-toggle)]])
+      (transient-define-prefix my-git-commands ()
+        "A transient for common git operations."
+        ["Git Commands"
+         ["Magit"
+          ("g" "Status" magit-status)
+          ("b" "blame" magit-blame-addition)
+          ("C" "Clone" magit-clone)
+          ]
+         ["Timemachine"
+          ("t" "Toggle Timemachine" git-timemachine-toggle)]])
 #+end_src
 
 ** Puni (structural editing - sexp / balanced expressions)
@@ -516,88 +520,102 @@ navigation etc. available since you're in your editor.
 ** completion
 #+begin_src emacs-lisp
 
-      (use-package vertico
-        :config
-        (vertico-mode))
+  (use-package vertico
+    :config
+    (vertico-mode))
 
-      (use-package consult
-        :bind (([remap switch-to-buffer] . consult-buffer)
-               ([remap project-find-regexp] . consult-ripgrep)
-               ([remap imenu] . consult-imenu))
-        :after vertico)
+  (use-package consult
+    :bind (([remap switch-to-buffer] . consult-buffer)
+           ([remap project-find-regexp] . consult-ripgrep)
+           ([remap imenu] . consult-imenu))
+    :after vertico)
 
-      (use-package vertico-prescient
-        :after prescient
-        :config
-        (vertico-prescient-mode t))
+  (use-package vertico-prescient
+    :after prescient
+    :config
+    (vertico-prescient-mode t))
 
         ;;; Completion at point
 
-      (use-package corfu
-        :config
-        (setopt corfu-cycle t)
-        (setopt corfu-auto t)
-        (setopt corfu-separator ?\s)          ; ?\s is " "
-        (setopt tab-always-indent 'complete)
-        (setopt corfu-min-width 30)
-        (setopt completion-ignore-case t)
-        (keymap-set corfu-map "RET" nil) ; aborts after newline
-        (global-corfu-mode 1))
+  (use-package corfu
+    :config
+    (setopt corfu-cycle t)
+    (setopt corfu-auto t)
+    (setopt corfu-separator ?\s)          ; ?\s is " "
+    (setopt tab-always-indent 'complete)
+    (setopt corfu-min-width 30)
+    (setopt completion-ignore-case t)
+    (keymap-set corfu-map "RET" nil) ; aborts after newline
+    (global-corfu-mode 1))
 
-      (use-package cape
-        :init
-        (add-to-list 'completion-at-point-functions #'cape-dabbrev)
-        (add-to-list 'completion-at-point-functions #'cape-file)
-        (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
-        (add-to-list 'completion-at-point-functions #'cape-elisp-block))
+  (use-package cape
+    :init
+    (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+    (add-to-list 'completion-at-point-functions #'cape-file)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-symbol)
+    (add-to-list 'completion-at-point-functions #'cape-elisp-block))
 
-      (use-package consult-lsp
-        :ensure t)
+  (use-package consult-lsp
+    :ensure t)
 
-      (use-package consult-flycheck
-        :ensure t)
+  (use-package consult-flycheck
+    :ensure t)
 
-      (use-package lsp-mode
-        :commands (lsp lsp-deferred)
-        :hook ((csharp-mode . lsp-deferred)
-               ;; (fsharp-mode . lsp-deferred)
-               )
-        :bind ((:map lsp-mode-map
-                     ("S-M-SPC" . #'lsp-signature-activate)))
-        :config
-        (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
-        (setq lsp-prefer-capf t)
-        (transient-define-prefix my/lsp-transient ()
-          "LSP commands"
-          [["Actions"
-            ("d" "Definition" lsp-find-definition)
-            ("?" "References" lsp-find-references)
-            ("i" "Implementation" lsp-find-implementation)
-            ("t" "Type Definition" lsp-find-type-definition)
-            ("s" "Symbol" consult-lsp-symbols)
-            ("f" "Format Buffer" lsp-format-buffer)
-            ("a" "Code Action" lsp-execute-code-action)]
-           ["Diagnostics"
-            ("n" "Next Diagnostic" flycheck-next-error)
-            ("p" "Previous Diagnostic" flycheck-previous-error)
-            ("l" "List Diagnostics" consult-flymake)]
-           ["Workspace"
-            ("R" "Restart Workspace" lsp-restart-workspace)
-            ("q" "Shutdown Workspace" lsp-shutdown-workspace)
-            ("r" "Rename Symbol" lsp-rename)]
-           ["Other"
-            ("m" "Toggle LSP Mode" lsp-mode)]]))
+  (use-package lsp-mode
+    :commands (lsp lsp-deferred)
+    :hook ((csharp-mode . lsp-deferred)
+           (bicep-ts-mode . lsp-deferred)
+           ;; (fsharp-mode . lsp-deferred)
+           )
+    :bind ((:map lsp-mode-map
+                 ("S-M-SPC" . #'lsp-signature-activate)))
+    :config
+
+    ;; (lsp-register-client
+    ;;  (make-lsp-client :new-connection (lsp-stdio-connection "csharp-ls")
+    ;;                   :major-modes '(csharp-mode)
+    ;;                   :server-id 'csharp-ls
+    ;;                   :priority 0))
+
+    (lsp-register-client
+     (make-lsp-client :new-connection (lsp-stdio-connection "OmniSharp")
+                      :major-modes '(csharp-mode)
+                      :server-id 'omnisharp
+                      :priority 1))
+
+  (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+  (setq lsp-prefer-capf t)
+  (transient-define-prefix my/lsp-transient ()
+    "LSP commands"
+    [["Actions"
+      ("d" "Definition" lsp-find-definition)
+      ("?" "References" lsp-find-references)
+      ("i" "Implementation" lsp-find-implementation)
+      ("t" "Type Definition" lsp-find-type-definition)
+      ("s" "Symbol" consult-lsp-symbols)
+      ("f" "Format Buffer" lsp-format-buffer)
+      ("a" "Code Action" lsp-execute-code-action)]
+     ["Diagnostics"
+      ("n" "Next Diagnostic" flycheck-next-error)
+      ("p" "Previous Diagnostic" flycheck-previous-error)
+      ("l" "List Diagnostics" consult-flymake)]
+     ["Workspace"
+      ("R" "Restart Workspace" lsp-restart-workspace)
+      ("q" "Shutdown Workspace" lsp-shutdown-workspace)
+      ("r" "Rename Symbol" lsp-rename)]
+     ["Other"
+      ("m" "Toggle LSP Mode" lsp-mode)]]))
 
 
-      ;; Make sure orderless works well with LSP
-      (use-package orderless
-        :config
-        (setopt completion-styles '(orderless basic))
-        (setopt completion-category-overrides '((file (styles basic partial-completion)))))
+  ;; Make sure orderless works well with LSP
+  (use-package orderless
+    :config
+    (setopt completion-styles '(orderless basic))
+    (setopt completion-category-overrides '((file (styles basic partial-completion)))))
 
   (use-package sly
-        :ensure t
-        :config (setf inferior-lisp-program "/usr/local/bin/sbcl"))
+    :ensure t
+    :config (setf inferior-lisp-program "/usr/local/bin/sbcl --dynamic-space-size 4096"))
 
       (use-package sharper
         :bind (("C-c d" . #'sharper-main-transient)))
@@ -636,7 +654,7 @@ navigation etc. available since you're in your editor.
 #+end_src
 
 #+RESULTS:
-: hippie-expand
+: [2 nil ([transient-columns nil ([transient-column (:description "Actions") ((transient-suffix :key "d" :description "Definition" :command lsp-find-definition) (transient-suffix :key "?" :description "References" :command lsp-find-references) (transient-suffix :key "i" :description "Implementation" :command lsp-find-implementation) (transient-suffix :key "t" :description "Type Definition" :command lsp-find-type-definition) (transient-suffix :key "s" :description "Symbol" :command consult-lsp-symbols) (transient-suffix :key "f" :description "Format Buffer" :command lsp-format-buffer) (transient-suffix :key "a" :description "Code Action" :command lsp-execute-code-action))] [transient-column (:description "Diagnostics") ((transient-suffix :key "n" :description "Next Diagnostic" :command flycheck-next-error) (transient-suffix :key "p" :description "Previous Diagnostic" :command flycheck-previous-error) (transient-suffix :key "l" :description "List Diagnostics" :command consult-flymake))] [transient-column (:description "Workspace") ((transient-suffix :key "R" :description "Restart Workspace" :command lsp-restart-workspace) (transient-suffix :key "q" :description "Shutdown Workspace" :command lsp-shutdown-workspace) (transient-suffix :key "r" :description "Rename Symbol" :command lsp-rename))] [transient-column (:description "Other") ((transient-suffix :key "m" :description "Toggle LSP Mode" :command lsp-mode))])])]
 
 ** flycheck
 #+begin_src emacs-lisp
@@ -1121,31 +1139,143 @@ shared namespaces of emacs
 : ledger-reports-transient
 
 
-* aider
+*  Claude
 #+begin_src emacs-lisp
-  (use-package aidermacs
-      :ensure (aidermacs :type git
-                                :host github
-                                :protocol ssh
-                                :repo "MatthewZMD/aidermacs")
+  ;; Terminal backend
+  (use-package eat
+    :ensure (:wait t)
+    :defer t)
 
-    :bind (("C-c a" . aidermacs-transient-menu))
-    :config (setenv "GEMINI_API_KEY" "AIzaSyCqQ8aIgDMbftlmuaUFwSG4WNUcovqrjdg")
-    (setf aidermacs-default-chat-mode 'architect)
-    (setf aidermacs-default-model "gemini"))
+  ;; WebSocket support
+  (use-package websocket
+    :ensure (:wait t))
+
+  ;; (use-package claude-code-ide
+  ;;   :ensure (:type git
+  ;;                  :host github
+  ;;                  :repo "manzaltu/claude-code-ide.el"
+  ;;                  :protocol ssh)
+  ;;   :commands (claude-code-ide claude-code-ide-menu)
+  ;;   :config
+  ;;   ;; Enable the built-in Emacs MCP tools
+  ;;   (claude-code-ide-emacs-tools-setup)
+
+  ;;   (setf claude-code-ide-terminal-backend 'vterm)
+  ;;   ;; Configure window placement (similar to your previous setup)
+  ;;   (setq claude-code-ide-window-side 'right
+  ;;         claude-code-ide-window-width 90
+  ;;         claude-code-ide-focus-on-open t)
+
+  ;;   ;; Optional: Enable notifications if desired
+  ;;   ;; (setq claude-code-ide-enable-notifications t)
+
+  ;;   :bind (("C-c c" . claude-code-ide-menu)  ; Main menu (replaces your keymap)
+  ;;          :repeat-map my-claude-code-map
+  ;;          ("M" . claude-code-ide-cycle-mode))) ; If this function exists
+
+  ;; (defun claude-eval-elisp (code)
+  ;;   "Evaluate elisp CODE and return the result."
+  ;;   (claude-code-ide-mcp-server-with-session-context nil
+  ;;     (condition-case err
+  ;;         (let ((result (eval (read code))))
+  ;;           (format "%S" result))
+  ;;       (error (format "Error: %S" err)))))
+
+  ;; (claude-code-ide-make-tool
+  ;;  :function #'claude-eval-elisp
+  ;;  :name "eval_elisp"
+  ;;  :description "Execute elisp code in your Emacs session"
+  ;;  :args '((:name "code"
+  ;;                 :type string
+  ;;                 :description "Elisp code to evaluate")))
+
+  ;; ;;Buffer Management Tool:
+  ;; (defun claude-list-buffers ()
+  ;;   "List all open buffers with their modes."
+  ;;   (mapcar (lambda (buf)
+  ;;             (with-current-buffer buf
+  ;;               (list (buffer-name) major-mode (buffer-file-name))))
+  ;;           (buffer-list)))
+
+  ;; (claude-code-ide-make-tool
+  ;;  :function #'claude-list-buffers
+  ;;  :name "list_buffers"
+  ;;  :description "List all open buffers in Emacs"
+  ;;  :args '())
+
+  ;; ;;Elisp Function Definition Lookup:
+  ;; (defun claude-describe-function (function-name)
+  ;;   "Get documentation for FUNCTION-NAME."
+  ;;   (claude-code-ide-mcp-server-with-session-context nil
+  ;;     (let ((sym (intern function-name)))
+  ;;       (if (fboundp sym)
+  ;;           (describe-function sym)
+  ;;         (format "Function %s not found" function-name)))))
+
+  ;; (claude-code-ide-make-tool
+  ;;  :function #'claude-describe-function
+  ;;  :name "describe_elisp_function"
+  ;;  :description "Get documentation for an Emacs Lisp function"
+  ;;  :args '((:name "function_name"
+  ;;                 :type string
+  ;;                 :description "Name of the function to describe")))
+
+  (use-package monet
+    :ensure (:type git
+                   :host github
+                   :repo "stevemolitor/monet"
+                   :protocol ssh)
+    :defer t)
+
+  ;; Claude Code with SSH
+  (use-package claude-code
+    :ensure (:type git
+                   :host github
+                   :repo "stevemolitor/claude-code.el"
+                   :protocol ssh)
+    :commands (claude-code claude-code-mode)
+    :config
+    (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
+    (monet-mode 1)
+    (claude-code-mode)
+    (setq claude-code-enable-notifications t)
+    ;; Display Claude in a right sidebar (33% width)
+    (add-to-list 'display-buffer-alist
+                 '("^\\*claude"
+                   (display-buffer-in-side-window)
+                   (side . right)
+                   (window-width . 90)))
+    :bind-keymap ("C-c c" . claude-code-command-map)
+    :bind
+    (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
 #+end_src
 
 #+RESULTS:
-: [nil 26722 29080 632364 nil elpaca-process-queues nil nil 514000 nil]
+: [nil 26831 57330 214363 nil elpaca-process-queues nil nil 228000 nil]
 
 * org
 #+begin_src emacs-lisp
-  (setf org-hide-leading-stars t)
-  (setf org-startup-indented t)
-  (setf org-pretty-entities t)
-  (setf org-agenda-files '("~/Dropbox/org/azure-devops.org"))
-  (setf org-directory '("~/Dropbox/org/"))
-  (add-hook 'org-cycle-hook #'org-cycle-hide-drawers)
+        (setf org-hide-leading-stars t)
+        (setf org-startup-indented t)
+        (setf org-pretty-entities t)
+        (setf org-agenda-files '("~/Dropbox/org/azure-devops.org"
+                                 "~/Dropbox/org/inbox.org"
+                                 "~/Dropbox/org/projects.org"))
+        (setf org-directory '("~/Dropbox/org/"))
+        (setq org-refile-targets '(("~/Dropbox/org/inbox.org" :maxlevel . 2)
+                                   ("~/Dropbox/org/notes.org" :maxlevel . 2)
+                                   ("~/Dropbox/org/projects.org" :maxlevel . 2)))
+        (setq org-todo-keyword-faces
+            '(("TODO" . "red")
+              ("VISIT" . "blue")
+              ("CALL" . "orange")
+              ("WAITING" . "yellow")
+              ("DONE" . "green")
+              ("CANCELLED" . "gray")))
+
+      (setq org-todo-keywords
+            '((sequence "TODO(t)" "VISIT(v)" "CALL(c)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(x)")))
+        (add-hook 'org-cycle-hook #'org-cycle-hide-drawers)
 #+end_src
 
 #+RESULTS:
