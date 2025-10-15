@@ -535,7 +535,7 @@ navigation etc. available since you're in your editor.
     :config
     (vertico-prescient-mode t))
 
-        ;;; Completion at point
+          ;;; Completion at point
 
   (use-package corfu
     :config
@@ -577,34 +577,34 @@ navigation etc. available since you're in your editor.
     ;;                   :server-id 'csharp-ls
     ;;                   :priority 0))
 
-    (lsp-register-client
-     (make-lsp-client :new-connection (lsp-stdio-connection "OmniSharp")
-                      :major-modes '(csharp-mode)
-                      :server-id 'omnisharp
-                      :priority 1))
+    ;; (lsp-register-client
+    ;;  (make-lsp-client :new-connection (lsp-stdio-connection "OmniSharp")
+    ;;                   :major-modes '(csharp-mode)
+    ;;                   :server-id 'omnisharp
+    ;;                   :priority 1))
 
-  (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
-  (setq lsp-prefer-capf t)
-  (transient-define-prefix my/lsp-transient ()
-    "LSP commands"
-    [["Actions"
-      ("d" "Definition" lsp-find-definition)
-      ("?" "References" lsp-find-references)
-      ("i" "Implementation" lsp-find-implementation)
-      ("t" "Type Definition" lsp-find-type-definition)
-      ("s" "Symbol" consult-lsp-symbols)
-      ("f" "Format Buffer" lsp-format-buffer)
-      ("a" "Code Action" lsp-execute-code-action)]
-     ["Diagnostics"
-      ("n" "Next Diagnostic" flycheck-next-error)
-      ("p" "Previous Diagnostic" flycheck-previous-error)
-      ("l" "List Diagnostics" consult-flymake)]
-     ["Workspace"
-      ("R" "Restart Workspace" lsp-restart-workspace)
-      ("q" "Shutdown Workspace" lsp-shutdown-workspace)
-      ("r" "Rename Symbol" lsp-rename)]
-     ["Other"
-      ("m" "Toggle LSP Mode" lsp-mode)]]))
+    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+    (setq lsp-prefer-capf t)
+    (transient-define-prefix my/lsp-transient ()
+      "LSP commands"
+      [["Actions"
+        ("d" "Definition" lsp-find-definition)
+        ("?" "References" lsp-find-references)
+        ("i" "Implementation" lsp-find-implementation)
+        ("t" "Type Definition" lsp-find-type-definition)
+        ("s" "Symbol" consult-lsp-symbols)
+        ("f" "Format Buffer" lsp-format-buffer)
+        ("a" "Code Action" lsp-execute-code-action)]
+       ["Diagnostics"
+        ("n" "Next Diagnostic" flycheck-next-error)
+        ("p" "Previous Diagnostic" flycheck-previous-error)
+        ("l" "List Diagnostics" consult-flymake)]
+       ["Workspace"
+        ("R" "Restart Workspace" lsp-restart-workspace)
+        ("q" "Shutdown Workspace" lsp-shutdown-workspace)
+        ("r" "Rename Symbol" lsp-rename)]
+       ["Other"
+        ("m" "Toggle LSP Mode" lsp-mode)]]))
 
 
   ;; Make sure orderless works well with LSP
@@ -617,40 +617,42 @@ navigation etc. available since you're in your editor.
     :ensure t
     :config (setf inferior-lisp-program "/usr/local/bin/sbcl --dynamic-space-size 4096"))
 
-      (use-package sharper
-        :bind (("C-c d" . #'sharper-main-transient)))
+  (use-package sharper
+    :bind (("C-c d" . #'sharper-main-transient)))
 
-      (use-package fsharp-mode)
-      (add-hook 'web-mode-hook 'my-web-mode-hook)
-      (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
 
-      ;; SLIME-Cape integration
-      (use-package yasnippet-capf
-        :ensure t
-        :after (cape yasnippet)
-        :config
-        (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+  (use-package fsharp-mode)
 
-      ;; Configure hippie-expand with YASnippet
-      (use-package yasnippet
-        :ensure t
-        :config
-        (yas-global-mode 1)
-        (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
-        (setq hippie-expand-try-functions-list
-              (cons 'yas-hippie-try-expand
-                    (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
+  (add-hook 'web-mode-hook 'my-web-mode-hook)
+  (add-hook 'eglot-managed-mode-hook (lambda () (+lsp-optimization-mode t)))
 
-      (use-package yasnippet-snippets
-        :after yasnippet)
-      ;; Dabbrev configuration
-      (use-package dabbrev
-        :ensure nil  ; built-in package
-        :config
-        (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
-        (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
-        (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
-        :bind ([remap dabbrev-expand] . hippie-expand))
+  ;; SLIME-Cape integration
+  (use-package yasnippet-capf
+    :ensure t
+    :after (cape yasnippet)
+    :config
+    (add-to-list 'completion-at-point-functions #'yasnippet-capf))
+
+  ;; Configure hippie-expand with YASnippet
+  (use-package yasnippet
+    :ensure t
+    :config
+    (yas-global-mode 1)
+    (add-to-list 'hippie-expand-try-functions-list 'yas-hippie-try-expand)
+    (setq hippie-expand-try-functions-list
+          (cons 'yas-hippie-try-expand
+                (delq 'yas-hippie-try-expand hippie-expand-try-functions-list))))
+
+  (use-package yasnippet-snippets
+    :after yasnippet)
+  ;; Dabbrev configuration
+  (use-package dabbrev
+    :ensure nil  ; built-in package
+    :config
+    (add-to-list 'dabbrev-ignored-buffer-regexps "\\` ")
+    (add-to-list 'dabbrev-ignored-buffer-modes 'doc-view-mode)
+    (add-to-list 'dabbrev-ignored-buffer-modes 'pdf-view-mode)
+    :bind ([remap dabbrev-expand] . hippie-expand))
 #+end_src
 
 #+RESULTS:
@@ -978,12 +980,16 @@ vertico package of prescient.
 integrate 1password with emacs auth sources
 #+begin_src emacs-lisp
   (use-package auth-source-1password
-    :config (auth-source-1password-enable))
+    :init
+    (progn
+      (add-to-list 'auth-sources '1password t)
+      (auth-source-forget-all-cached)))
 #+end_src
 
-** Gptel
+** custom lisp
 #+begin_src emacs-lisp
   (require 'demo-gptel-config)
+  (require 'git-contributor-stats)
 #+end_src
 
 ** nameless
@@ -1043,23 +1049,30 @@ shared namespaces of emacs
                         (text-scale-increase 1)  ;; Slightly larger text
                         )))
 #+end_src
+** editor config
+#+begin_src emacs-lisp
+      (use-package editorconfig
+        :ensure nil
+        :config (editorconfig-mode 1))
+#+end_src
 
 ** Azure-devops-org
 #+name:az-devops
 #+begin_src emacs-lisp :tangle no :noweb yes
-    (use-package azure-devops-org
-      :ensure (azure-devops-org :type git
-                                :host github
-                                :protocol ssh
-                                :repo "SourKrimAndOnions/azure-devops.el")
-      :after (promise emacsql)
-      :config
-      (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat"
-                                                                  :user "credential")
-            azure-devops-org-project "Clever"
-            azure-devops-org-organization "cleveras"
-            azure-devops-org-file (format "%s%s" (car org-directory) "azure-devops.org"))
-      (add-to-list 'azure-devops-org-todo-states "Ready for QA"))
+  (use-package azure-devops-org
+    :ensure (azure-devops-org :type git
+                              :host github
+                              :protocol ssh
+                              :repo "SourKrimAndOnions/azure-devops.el")
+    :after (auth-source-1password promise emacsql)
+    :config
+    (auth-source-forget-all-cached)
+    (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat")
+          azure-devops-org-project "Clever"
+          azure-devops-org-organization "cleveras"
+          azure-devops-org-default-area-path "Clever\\App Development"
+          azure-devops-org-file (format "%s%s" (car org-directory) "azure-devops.org"))
+    (add-to-list 'azure-devops-org-todo-states "Ready for QA"))
 #+end_src
 
 #+RESULTS: az-devops
@@ -1248,6 +1261,11 @@ shared namespaces of emacs
     :bind-keymap ("C-c c" . claude-code-command-map)
     :bind
     (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
+
+  ;;mcp
+
+  (use-package elisp-dev-mcp
+    :ensure t)
 #+end_src
 
 #+RESULTS:
@@ -1255,27 +1273,29 @@ shared namespaces of emacs
 
 * org
 #+begin_src emacs-lisp
-        (setf org-hide-leading-stars t)
-        (setf org-startup-indented t)
-        (setf org-pretty-entities t)
-        (setf org-agenda-files '("~/Dropbox/org/azure-devops.org"
-                                 "~/Dropbox/org/inbox.org"
-                                 "~/Dropbox/org/projects.org"))
-        (setf org-directory '("~/Dropbox/org/"))
-        (setq org-refile-targets '(("~/Dropbox/org/inbox.org" :maxlevel . 2)
-                                   ("~/Dropbox/org/notes.org" :maxlevel . 2)
-                                   ("~/Dropbox/org/projects.org" :maxlevel . 2)))
-        (setq org-todo-keyword-faces
-            '(("TODO" . "red")
-              ("VISIT" . "blue")
-              ("CALL" . "orange")
-              ("WAITING" . "yellow")
-              ("DONE" . "green")
-              ("CANCELLED" . "gray")))
+  (eval-after-load "org"
+  '(require 'ox-md nil t))
+    (setf org-hide-leading-stars t)
+    (setf org-startup-indented t)
+    (setf org-pretty-entities t)
+    (setf org-agenda-files '("~/Dropbox/org/azure-devops.org"
+                             "~/Dropbox/org/inbox.org"
+                             "~/Dropbox/org/projects.org"))
+    (setf org-directory '("~/Dropbox/org/"))
+    (setq org-refile-targets '(("~/Dropbox/org/inbox.org" :maxlevel . 2)
+                               ("~/Dropbox/org/notes.org" :maxlevel . 2)
+                               ("~/Dropbox/org/projects.org" :maxlevel . 2)))
+    (setq org-todo-keyword-faces
+        '(("TODO" . "red")
+          ("VISIT" . "blue")
+          ("CALL" . "orange")
+          ("WAITING" . "yellow")
+          ("DONE" . "green")
+          ("CANCELLED" . "gray")))
 
-      (setq org-todo-keywords
-            '((sequence "TODO(t)" "VISIT(v)" "CALL(c)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(x)")))
-        (add-hook 'org-cycle-hook #'org-cycle-hide-drawers)
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "VISIT(v)" "CALL(c)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(x)")))
+    (add-hook 'org-cycle-hook #'org-cycle-hide-drawers)
 #+end_src
 
 #+RESULTS:
