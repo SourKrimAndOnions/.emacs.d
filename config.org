@@ -1008,7 +1008,6 @@ integrate 1password with emacs auth sources
 ** custom lisp
 #+begin_src emacs-lisp
   (require 'demo-gptel-config)
-  (require 'git-contributor-stats)
 #+end_src
 
 ** nameless
