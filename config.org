@@ -456,14 +456,17 @@ navigation etc. available since you're in your editor.
     (use-package cond-let
       :ensure nil)
     (use-package magit
-        :config
-        (setf magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1
-              magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1
-              magit-save-repository-buffers 'dontask
-              ediff-window-setup-function 'ediff-setup-windows-plain)
-        :bind (("C-c v" . #'my-git-commands)))
+      :config
+      (setf magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1
+            magit-display-buffer-function #'magit-display-buffer-fullframe-status-v1
+            magit-save-repository-buffers 'dontask
+            ediff-window-setup-function 'ediff-setup-windows-plain)
+      :bind (("C-c v" . #'my-git-commands)))
 
-      (use-package magit-todos)
+    (use-package forge
+      :after magit)
+
+    (use-package magit-todos)
 
       (use-package conventional-commit
         :ensure (conventional-commit
