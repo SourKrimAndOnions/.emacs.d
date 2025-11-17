@@ -201,23 +201,16 @@ bootstrapping elpaca
                 (unless (server-running-p)
                   (server-start)))))
 
-  ;; (use-package bookmark
-  ;;   :ensure nil
-  ;;   :config
-  ;;   (setopt bookmark-save-flag 1)
-  ;;   ;; Save bookmarks every five minutes
-  ;;   (run-at-time nil (* 5 60) #'bookmark-save))
-
-  ;; Accumulate history of buffers automatically.  Saves mental effort enormously.
-  (use-package recentf
-    :ensure nil
-    :config
-    (recentf-load-list)
-    (recentf-mode 1)
-    (setq recentf-max-saved-items 200)
-    ;; Save recentf every five minutes
-    (run-at-time nil (* 5 60) #'recentf-save-list)
-    (add-hook 'kill-emacs-hook #'recentf-save-list))
+    ;; Accumulate history of buffers automatically.  Saves mental effort enormously.
+    (use-package recentf
+      :ensure nil
+      :config
+      (recentf-load-list)
+      (recentf-mode 1)
+      (setq recentf-max-saved-items 200)
+      ;; Save recentf every five minutes
+      (run-at-time nil (* 5 60) #'recentf-save-list)
+      (add-hook 'kill-emacs-hook #'recentf-save-list))
 
   ;; See yasnippet's config and snippet in
   ;; ~/.emacs.d/etc/yasnippet/emacs-lisp-mode/package
@@ -999,7 +992,7 @@ integrate 1password with emacs auth sources
     :after epa-file
     :config
     ;; Trigger backend initialization - forces reading of .authinfo.gpg
-    (setf auth-sources '("~/.authinfo.gpg"))
+    (setf auth-sources '("~/.config/.authinfo.gpg"))
     (auth-source-forget-all-cached))
 
   (use-package auth-source-1password
