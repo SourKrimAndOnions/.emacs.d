@@ -99,161 +99,163 @@ bootstrapping elpaca
 #+begin_src emacs-lisp
 
 
-    ;; Right after Elpaca is available, we can require packages and evaluate
-    ;; expressiosn after they run, and the first few packages are configuring things
-    ;; that need to be set up prior to evaluating any use-package expressions or
-    ;; loading and configuring packages.
-    (elpaca elpaca-use-package              ; enables :elpaca keyword in use-package
-      (elpaca-use-package-mode)
-      (setq elpaca-use-package-by-default t))
+  ;; Right after Elpaca is available, we can require packages and evaluate
+  ;; expressiosn after they run, and the first few packages are configuring things
+  ;; that need to be set up prior to evaluating any use-package expressions or
+  ;; loading and configuring packages.
+  (elpaca elpaca-use-package              ; enables :elpaca keyword in use-package
+    (elpaca-use-package-mode)
+    (setq elpaca-use-package-by-default t))
 
-    (elpaca no-littering
-      (require 'no-littering)
-      (setq custom-file (no-littering-expand-etc-file-name "custom.el")))
+  (elpaca no-littering
+    (require 'no-littering)
+    (setq custom-file (no-littering-expand-etc-file-name "custom.el")))
 
-    (elpaca auto-compile
-      (require 'auto-compile)
-      ;; Don't load outdated .elc files
-      (setopt load-prefer-newer t)
-      (setopt auto-compile-display-buffer nil)
-      ;; You will still get byte compile and you can open *Warnings* buffer
-      (setopt native-comp-async-report-warnings-errors 'silent)
-      (auto-compile-on-load-mode 1)
-      (auto-compile-on-save-mode 1))
+  (elpaca auto-compile
+    (require 'auto-compile)
+    ;; Don't load outdated .elc files
+    (setopt load-prefer-newer t)
+    (setopt auto-compile-display-buffer nil)
+    ;; You will still get byte compile and you can open *Warnings* buffer
+    (setopt native-comp-async-report-warnings-errors 'silent)
+    (auto-compile-on-load-mode 1)
+    (auto-compile-on-save-mode 1))
 
-    (elpaca compat
-      (require 'compat))
+  (elpaca compat
+    (require 'compat))
 
 
-    ;; This evaluation barrier blocks so that `use-package' expressions below will
-    ;; not try to use the `:elpaca' keyword before it's defined.
-    (elpaca-wait)
+  ;; This evaluation barrier blocks so that `use-package' expressions below will
+  ;; not try to use the `:elpaca' keyword before it's defined.
+  (elpaca-wait)
 
-    ;;; Built-in things
+  ;;; Built-in things
 
-    ;; `emacs' is a pseudo-package and just tidies up configuration of things that
-    ;; don't require loading
-    (use-package emacs
-      :ensure nil
-      :config
-      (save-place-mode 1) ; visit files at same position
-      (show-paren-mode 1)
-      (setopt
-       ;; https://www.reddit.com/r/emacs/comments/kgv4fj/problems_in_org_trello_error_requestcurlsync/
-       request-backend 'url-retrieve
-       frame-resize-pixelwise t
-       window-resize-pixelwise t
-       Info-scroll-prefer-subnodes t
-       comint-scroll-to-bottom-on-input t
-       delete-by-moving-to-trash t
-       use-short-answers t
-       create-lockfiles nil)
+  ;; `emacs' is a pseudo-package and just tidies up configuration of things that
+  ;; don't require loading
+  (use-package emacs
+    :ensure nil
+    :bind (("M-p" . #'previous-error)
+           ("M-n" . #'next-error))
+    :config
+    (save-place-mode 1) ; visit files at same position
+    (show-paren-mode 1)
+    (setf bookmark-save-flag nil)
+    (setq revert-without-query '(".*bookmark.*"))
+    (setopt
+     ;; https://www.reddit.com/r/emacs/comments/kgv4fj/problems_in_org_trello_error_requestcurlsync/
+     request-backend 'url-retrieve
+     frame-resize-pixelwise t
+     window-resize-pixelwise t
+     Info-scroll-prefer-subnodes t
+     comint-scroll-to-bottom-on-input t
+     delete-by-moving-to-trash t
+     use-short-answers t
+     create-lockfiles nil)
 
-      (let ((emacs-backup-dir (no-littering-expand-var-file-name "backups/.saves-")))
-        (setq backup-directory-alist
-              `((".*" . ,emacs-backup-dir)))
-        (setq auto-save-file-name-transforms
-              `((".*" ,emacs-backup-dir t)))
-        (setq auto-save-list-file-prefix
-              emacs-backup-dir)
-        (setq initial-scratch-message nil
-              initial-buffer-choice (no-littering-expand-var-file-name "scratch.el")
-              initial-major-mode 'emacs-lisp-mode))
+    (let ((emacs-backup-dir (no-littering-expand-var-file-name "backups/.saves-")))
+      (setq backup-directory-alist
+            `((".*" . ,emacs-backup-dir)))
+      (setq auto-save-file-name-transforms
+            `((".*" ,emacs-backup-dir t)))
+      (setq auto-save-list-file-prefix
+            emacs-backup-dir)
+      (setq initial-scratch-message nil
+            initial-major-mode 'emacs-lisp-mode))
 
-      ;; ibuffer is much better than list-buffers
-      (substitute-key-definition 'list-buffers 'ibuffer global-map)
+    ;; ibuffer is much better than list-buffers
+    (substitute-key-definition 'list-buffers 'ibuffer global-map)
 
-      ;; Thanks Steve Purcell
-      (keymap-global-set "RET" 'newline-and-indent)
+    ;; Thanks Steve Purcell
+    (keymap-global-set "RET" 'newline-and-indent)
 
-      (delete-selection-mode 0) ; Actions on active region will delete
-      (add-to-list 'write-file-functions 'delete-trailing-whitespace)
-      (add-hook 'elpaca-after-init-hook
-                `(lambda ()
-                   ;; Undo the file handler trick from early-init.el
-                   (setq file-name-handler-alist file-name-handler-alist-old)
-                   ;; Still more memory per GC than standard, but not so much that GC
-                   ;; becomes slow.
-                   (setq gc-cons-threshold (* 16 1000 1000))
-                   (setq gc-cons-percentage 0.1))
-                t))
+    (delete-selection-mode 0) ; Actions on active region will delete
+    (add-to-list 'write-file-functions 'delete-trailing-whitespace)
+    (add-hook 'elpaca-after-init-hook
+              `(lambda ()
+                 ;; Undo the file handler trick from early-init.el
+                 (setq file-name-handler-alist file-name-handler-alist-old)
+                 ;; Still more memory per GC than standard, but not so much that GC
+                 ;; becomes slow.
+                 (setq gc-cons-threshold (* 16 1000 1000))
+                 (setq gc-cons-percentage 0.1))
+              t))
 
-    (use-package gcmh
-      :ensure t
-      :config
-      (gcmh-mode 1)
-      ;; The default is 800 kilobytes.  Measured in bytes.
-      ;; Profile emacs startup
-      (add-hook 'emacs-startup-hook
-                (lambda ()
-                  (message "*** Emacs loaded in %s seconds with %d garbage collections."
-                           (emacs-init-time "%.2f")
-                           gcs-done))))
-    ;; Always run a server if there isn't one, for any emacsclients to connect to.
-    (use-package server
-      :ensure nil
-      :config
-      (add-hook 'elpaca-after-init-hook
-                (lambda ()
-                  (unless (server-running-p)
-                    (server-start)))))
+  (use-package gcmh
+    :ensure t
+    :config
+    (gcmh-mode 1)
+    ;; The default is 800 kilobytes.  Measured in bytes.
+    ;; Profile emacs startup
+    (add-hook 'emacs-startup-hook
+              (lambda ()
+                (message "*** Emacs loaded in %s seconds with %d garbage collections."
+                         (emacs-init-time "%.2f")
+                         gcs-done))))
+  ;; Always run a server if there isn't one, for any emacsclients to connect to.
+  (use-package server
+    :ensure nil
+    :config
+    (add-hook 'elpaca-after-init-hook
+              (lambda ()
+                (unless (server-running-p)
+                  (server-start)))))
 
-    (use-package bookmark
-      :ensure nil
-      :config
-      (setopt bookmark-save-flag 1)
-      ;; Save bookmarks every five minutes
-      (run-at-time nil (* 5 60) #'bookmark-save))
+  ;; (use-package bookmark
+  ;;   :ensure nil
+  ;;   :config
+  ;;   (setopt bookmark-save-flag 1)
+  ;;   ;; Save bookmarks every five minutes
+  ;;   (run-at-time nil (* 5 60) #'bookmark-save))
 
-    ;; Accumulate history of buffers automatically.  Saves mental effort enormously.
-    (use-package recentf
-      :ensure nil
-      :config
-      (recentf-load-list)
-      (recentf-mode 1)
-      (setq recentf-max-saved-items 200)
-      ;; Save recentf every five minutes
-      (run-at-time nil (* 5 60) #'recentf-save-list)
-      (add-hook 'kill-emacs-hook #'recentf-save-list))
+  ;; Accumulate history of buffers automatically.  Saves mental effort enormously.
+  (use-package recentf
+    :ensure nil
+    :config
+    (recentf-load-list)
+    (recentf-mode 1)
+    (setq recentf-max-saved-items 200)
+    ;; Save recentf every five minutes
+    (run-at-time nil (* 5 60) #'recentf-save-list)
+    (add-hook 'kill-emacs-hook #'recentf-save-list))
 
-    ;; See yasnippet's config and snippet in
-    ;; ~/.emacs.d/etc/yasnippet/emacs-lisp-mode/package
-    (use-package autoinsert
-      :ensure nil
-      :config
-      (setq auto-insert-query nil)
-      (setq auto-insert-alist
-            `((emacs-lisp-mode . (lambda ()
-                                   (require 'yasnippet)
-                                   (insert "<p")
-                                   (call-interactively #'yas-expand)))
-              (csharp-mode . (lambda ()
-                               (require 'yasnippet)
-                               (if (string-match-p "I[A-Z].*\\.cs$" (buffer-name))
-                                   (insert "<i")
-                                 (insert "<"
-                                         (completing-read "Type (c)lass/(r)ecord: " '("c" "r") nil t)))
-                               (call-interactively #'yas-expand)))))
-      (auto-insert-mode t))
+  ;; See yasnippet's config and snippet in
+  ;; ~/.emacs.d/etc/yasnippet/emacs-lisp-mode/package
+  (use-package autoinsert
+    :ensure nil
+    :config
+    (setq auto-insert-query nil)
+    (setq auto-insert-alist
+          `((emacs-lisp-mode . (lambda ()
+                                 (require 'yasnippet)
+                                 (insert "<p")
+                                 (call-interactively #'yas-expand)))
+            (csharp-mode . (lambda ()
+                             (require 'yasnippet)
+                             (if (string-match-p "I[A-Z].*\\.cs$" (buffer-name))
+                                 (insert "<i")
+                               (insert "<"
+                                       (completing-read "Type (c)lass/(r)ecord: " '("c" "r") nil t)))
+                             (call-interactively #'yas-expand)))))
+    (auto-insert-mode t))
 
-    (use-package savehist
-      :ensure nil
-      :init (savehist-mode t))
+  (use-package savehist
+    :ensure nil
+    :init (savehist-mode t))
 
-    (use-package s
-      :ensure t
-      :demand t)
+  (use-package s
+    :ensure t
+    :demand t)
 
-    (use-package transient
-      :ensure t
-      :demand t
-      :after compat
-      :bind(( "C-c '" . #'my/lsp-transient)))
-    (elpaca-wait)
+  (use-package transient
+    :ensure t
+    :demand t
+    :after compat
+    :bind(( "C-c '" . #'my/lsp-transient)))
+  (elpaca-wait)
 #+end_src
 
 #+RESULTS:
-| (lambda nil (message *** Emacs loaded in %s seconds with %d garbage collections. (emacs-init-time %.2f) gcs-done)) | #[0 \301!\210eb\210\302 \210\303\304!\207 [dashboard-buffer-name switch-to-buffer redisplay run-hooks dashboard-after-initialize-hook] 2] | (closure (t) nil (message *** Emacs loaded in %s seconds with %d garbage collections. (emacs-init-time %.2f) gcs-done)) |
 
 ** allow themes and babel blocks
 #+begin_src emacs-lisp
@@ -538,7 +540,7 @@ navigation etc. available since you're in your editor.
     :config
     (vertico-prescient-mode t))
 
-          ;;; Completion at point
+            ;;; Completion at point
 
   (use-package corfu
     :config
@@ -564,6 +566,11 @@ navigation etc. available since you're in your editor.
   (use-package consult-flycheck
     :ensure t)
 
+  (use-package mise
+    :ensure t
+    :config
+    (global-mise-mode))
+
   (use-package lsp-mode
     :commands (lsp lsp-deferred)
     :hook ((csharp-mode . lsp-deferred)
@@ -573,21 +580,18 @@ navigation etc. available since you're in your editor.
     :bind ((:map lsp-mode-map
                  ("S-M-SPC" . #'lsp-signature-activate)))
     :config
+    (setq lsp-csharp-csharpls-use-local-tool t)
+    (setq lsp-completion-provider :none) ; Use completion-at-point instead
 
-    ;; (lsp-register-client
-    ;;  (make-lsp-client :new-connection (lsp-stdio-connection "csharp-ls")
-    ;;                   :major-modes '(csharp-mode)
-    ;;                   :server-id 'csharp-ls
-    ;;                   :priority 0))
+    ;; Configure orderless to handle LSP completion properly
+    (defun my/lsp-mode-setup-completion ()
+      (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+            '(orderless)))
 
-    ;; (lsp-register-client
-    ;;  (make-lsp-client :new-connection (lsp-stdio-connection "OmniSharp")
-    ;;                   :major-modes '(csharp-mode)
-    ;;                   :server-id 'omnisharp
-    ;;                   :priority 1))
-
-    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+    (add-hook 'lsp-completion-mode-hook #'my/lsp-mode-setup-completion)
     (setq lsp-prefer-capf t)
+    (define-key lsp-mode-map [remap xref-find-apropos] #'consult-lsp-symbols)
+
     (transient-define-prefix my/lsp-transient ()
       "LSP commands"
       [["Actions"
@@ -659,7 +663,7 @@ navigation etc. available since you're in your editor.
 #+end_src
 
 #+RESULTS:
-: [2 nil ([transient-columns nil ([transient-column (:description "Actions") ((transient-suffix :key "d" :description "Definition" :command lsp-find-definition) (transient-suffix :key "?" :description "References" :command lsp-find-references) (transient-suffix :key "i" :description "Implementation" :command lsp-find-implementation) (transient-suffix :key "t" :description "Type Definition" :command lsp-find-type-definition) (transient-suffix :key "s" :description "Symbol" :command consult-lsp-symbols) (transient-suffix :key "f" :description "Format Buffer" :command lsp-format-buffer) (transient-suffix :key "a" :description "Code Action" :command lsp-execute-code-action))] [transient-column (:description "Diagnostics") ((transient-suffix :key "n" :description "Next Diagnostic" :command flycheck-next-error) (transient-suffix :key "p" :description "Previous Diagnostic" :command flycheck-previous-error) (transient-suffix :key "l" :description "List Diagnostics" :command consult-flymake))] [transient-column (:description "Workspace") ((transient-suffix :key "R" :description "Restart Workspace" :command lsp-restart-workspace) (transient-suffix :key "q" :description "Shutdown Workspace" :command lsp-shutdown-workspace) (transient-suffix :key "r" :description "Rename Symbol" :command lsp-rename))] [transient-column (:description "Other") ((transient-suffix :key "m" :description "Toggle LSP Mode" :command lsp-mode))])])]
+: hippie-expand
 
 ** flycheck
 #+begin_src emacs-lisp
