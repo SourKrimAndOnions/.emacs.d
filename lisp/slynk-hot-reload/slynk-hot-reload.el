@@ -55,8 +55,10 @@ Should be a list representing the function call."
                       (or load-file-name buffer-file-name)))))
 
 (defun slynk-hot-reload--register-backend ()
-  "Register the bundled Common Lisp backend with ASDF."
-  (unless slynk-hot-reload--backend-loaded
+  "Register the bundled Common Lisp backend with ASDF.
+Only runs when a Sly connection is active."
+  (when (and (not slynk-hot-reload--backend-loaded)
+             (sly-connected-p))
     (let ((backend-dir (slynk-hot-reload--backend-directory)))
       (when (file-directory-p backend-dir)
         (condition-case err
@@ -97,19 +99,16 @@ LOADP is t if the code was loaded."
   :group 'slynk-hot-reload
   (if slynk-hot-reload-mode
       (progn
-        (slynk-hot-reload--register-backend)
+        ;; Register backend now if connected, otherwise defer
+        (if (sly-connected-p)
+            (slynk-hot-reload--register-backend)
+          ;; Wait for connection
+          (add-hook 'sly-connected-hook #'slynk-hot-reload--register-backend))
         (add-hook 'sly-compilation-finished-hook #'slynk-hot-reload--after-compile)
         (message "slynk-hot-reload enabled"))
+    (remove-hook 'sly-connected-hook #'slynk-hot-reload--register-backend)
     (remove-hook 'sly-compilation-finished-hook #'slynk-hot-reload--after-compile)
     (message "slynk-hot-reload disabled")))
-
-;; Auto-enable if loaded without the minor mode (for backward compatibility)
-(unless (featurep 'slynk-hot-reload)
-  (add-hook 'sly-mode-hook
-            (lambda ()
-              (when (and (boundp 'slynk-hot-reload-mode)
-                         slynk-hot-reload-mode)
-                (slynk-hot-reload--register-backend)))))
 
 (provide 'slynk-hot-reload)
 ;;; slynk-hot-reload.el ends here
