@@ -135,11 +135,12 @@ bootstrapping elpaca
   ;; don't require loading
   (use-package emacs
     :ensure nil
-    :bind (("M-p" . #'previous-error)
-           ("M-n" . #'next-error))
+    ;; :bind (("M-p" . #'previous-error)
+    ;;        ("M-n" . #'next-error))
     :config
     (save-place-mode 1) ; visit files at same position
     (show-paren-mode 1)
+    (repeat-mode 1)
     (setf bookmark-save-flag nil)
     (setq revert-without-query '(".*bookmark.*"))
     (setopt
@@ -1178,76 +1179,6 @@ shared namespaces of emacs
   (use-package websocket
     :ensure (:wait t))
 
-  ;; (use-package claude-code-ide
-  ;;   :ensure (:type git
-  ;;                  :host github
-  ;;                  :repo "manzaltu/claude-code-ide.el"
-  ;;                  :protocol ssh)
-  ;;   :commands (claude-code-ide claude-code-ide-menu)
-  ;;   :config
-  ;;   ;; Enable the built-in Emacs MCP tools
-  ;;   (claude-code-ide-emacs-tools-setup)
-
-  ;;   (setf claude-code-ide-terminal-backend 'vterm)
-  ;;   ;; Configure window placement (similar to your previous setup)
-  ;;   (setq claude-code-ide-window-side 'right
-  ;;         claude-code-ide-window-width 90
-  ;;         claude-code-ide-focus-on-open t)
-
-  ;;   ;; Optional: Enable notifications if desired
-  ;;   ;; (setq claude-code-ide-enable-notifications t)
-
-  ;;   :bind (("C-c c" . claude-code-ide-menu)  ; Main menu (replaces your keymap)
-  ;;          :repeat-map my-claude-code-map
-  ;;          ("M" . claude-code-ide-cycle-mode))) ; If this function exists
-
-  ;; (defun claude-eval-elisp (code)
-  ;;   "Evaluate elisp CODE and return the result."
-  ;;   (claude-code-ide-mcp-server-with-session-context nil
-  ;;     (condition-case err
-  ;;         (let ((result (eval (read code))))
-  ;;           (format "%S" result))
-  ;;       (error (format "Error: %S" err)))))
-
-  ;; (claude-code-ide-make-tool
-  ;;  :function #'claude-eval-elisp
-  ;;  :name "eval_elisp"
-  ;;  :description "Execute elisp code in your Emacs session"
-  ;;  :args '((:name "code"
-  ;;                 :type string
-  ;;                 :description "Elisp code to evaluate")))
-
-  ;; ;;Buffer Management Tool:
-  ;; (defun claude-list-buffers ()
-  ;;   "List all open buffers with their modes."
-  ;;   (mapcar (lambda (buf)
-  ;;             (with-current-buffer buf
-  ;;               (list (buffer-name) major-mode (buffer-file-name))))
-  ;;           (buffer-list)))
-
-  ;; (claude-code-ide-make-tool
-  ;;  :function #'claude-list-buffers
-  ;;  :name "list_buffers"
-  ;;  :description "List all open buffers in Emacs"
-  ;;  :args '())
-
-  ;; ;;Elisp Function Definition Lookup:
-  ;; (defun claude-describe-function (function-name)
-  ;;   "Get documentation for FUNCTION-NAME."
-  ;;   (claude-code-ide-mcp-server-with-session-context nil
-  ;;     (let ((sym (intern function-name)))
-  ;;       (if (fboundp sym)
-  ;;           (describe-function sym)
-  ;;         (format "Function %s not found" function-name)))))
-
-  ;; (claude-code-ide-make-tool
-  ;;  :function #'claude-describe-function
-  ;;  :name "describe_elisp_function"
-  ;;  :description "Get documentation for an Emacs Lisp function"
-  ;;  :args '((:name "function_name"
-  ;;                 :type string
-  ;;                 :description "Name of the function to describe")))
-
   (use-package monet
     :ensure (:type git
                    :host github
@@ -1267,6 +1198,7 @@ shared namespaces of emacs
     (monet-mode 1)
     (claude-code-mode)
     (setq claude-code-enable-notifications t)
+    (setq claude-code-terminal-backend 'vterm)
     ;; Display Claude in a right sidebar (33% width)
     (add-to-list 'display-buffer-alist
                  '("^\\*claude"
