@@ -83,3 +83,6 @@ Otherwise, it's added to the global dispatch table."
           (format stream ":ping~%~%")
           (force-output stream))
       (error () nil))))
+
+;;; Slynk module registration
+(provide :slynk/hot-reload)

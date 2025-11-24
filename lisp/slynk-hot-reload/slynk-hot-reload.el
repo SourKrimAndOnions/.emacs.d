@@ -12,22 +12,22 @@
 ;; Automatically triggers browser hot reload after successful compilation in Sly.
 ;; Works with both C-c C-c (compile-defun) and C-c C-k (compile-file).
 ;;
-;; This package bundles the Common Lisp backend (slynk-hot-reload system) and
-;; automatically makes it available to your Lisp processes.
+;; This is a Sly contrib that bundles the Common Lisp backend and automatically
+;; loads it during Sly connection initialization.
 ;;
 ;; Usage:
 ;;
 ;;   ;; In your ~/.emacs.d/init.el:
 ;;   (add-to-list 'load-path "~/.emacs.d/lisp/slynk-hot-reload")
 ;;   (require 'slynk-hot-reload)
-;;   (slynk-hot-reload-mode 1)
+;;   (add-to-list 'sly-contribs 'slynk-hot-reload 'append)
 ;;
 ;;   ;; In your Common Lisp project:
 ;;   ;; - Call (slynk-hot-reload:setup :acceptor *acceptor*) when starting server
 ;;   ;; - Include (:script (:raw (slynk-hot-reload:script))) in HTML templates
 ;;
 ;; The Common Lisp backend is automatically loaded from the bundled slynk/
-;; subdirectory when you enable the mode.
+;; subdirectory during Sly connection, before the REPL is available.
 
 ;;; Code:
 
@@ -44,46 +44,13 @@ Should be a list representing the function call."
   :type 'sexp
   :group 'slynk-hot-reload)
 
-(defvar slynk-hot-reload--backend-loaded nil
-  "Whether the Common Lisp backend has been registered with ASDF.")
-
-(defun slynk-hot-reload--backend-directory ()
-  "Return the directory containing the Common Lisp backend."
-  (file-name-as-directory
-   (expand-file-name "slynk"
-                     (file-name-directory
-                      (or load-file-name buffer-file-name)))))
-
-(defun slynk-hot-reload--register-backend ()
-  "Register the bundled Common Lisp backend with ASDF.
-Only runs when a Sly connection is active."
-  (when (and (not slynk-hot-reload--backend-loaded)
-             (sly-connected-p))
-    (let ((backend-dir (slynk-hot-reload--backend-directory)))
-      (when (file-directory-p backend-dir)
-        (condition-case err
-            (progn
-              ;; Add to ASDF source registry
-              (sly-eval `(cl:pushnew (cl:pathname ,backend-dir)
-                                     asdf:*central-registry*
-                                     :test #'cl:equal))
-              ;; Try to load the system
-              (sly-eval-async '(asdf:load-system :slynk-hot-reload)
-                (lambda (result)
-                  (message "slynk-hot-reload backend loaded"))
-                (lambda (condition)
-                  (message "Warning: Could not load slynk-hot-reload backend: %s" condition)))
-              (setq slynk-hot-reload--backend-loaded t))
-          (error
-           (message "Warning: Could not register slynk-hot-reload backend: %s" err)))))))
-
 (defun slynk-hot-reload--after-compile (success notes buffer loadp)
   "Trigger hot reload after successful compilation.
 SUCCESS is t if compilation succeeded.
 NOTES contains compilation warnings/errors.
 BUFFER is the buffer that was compiled.
 LOADP is t if the code was loaded."
-  (when (and success slynk-hot-reload-mode)
+  (when success
     (condition-case err
         (sly-eval-async slynk-hot-reload-reload-function
           (lambda (result)
@@ -92,23 +59,15 @@ LOADP is t if the code was loaded."
        (message "Hot reload: Could not trigger reload: %s" err)))))
 
 ;;;###autoload
-(define-minor-mode slynk-hot-reload-mode
-  "Minor mode for automatic hot reload after compilation in Sly."
-  :global t
-  :lighter " HotReload"
-  :group 'slynk-hot-reload
-  (if slynk-hot-reload-mode
-      (progn
-        ;; Register backend now if connected, otherwise defer
-        (if (sly-connected-p)
-            (slynk-hot-reload--register-backend)
-          ;; Wait for connection
-          (add-hook 'sly-connected-hook #'slynk-hot-reload--register-backend))
-        (add-hook 'sly-compilation-finished-hook #'slynk-hot-reload--after-compile)
-        (message "slynk-hot-reload enabled"))
-    (remove-hook 'sly-connected-hook #'slynk-hot-reload--register-backend)
-    (remove-hook 'sly-compilation-finished-hook #'slynk-hot-reload--after-compile)
-    (message "slynk-hot-reload disabled")))
+(define-sly-contrib slynk-hot-reload
+  "Automatic browser hot reload after compilation."
+  (:authors "Your Name")
+  (:license "MIT")
+  (:slynk-dependencies slynk/hot-reload)
+  (:on-load
+   (add-hook 'sly-compilation-finished-hook #'slynk-hot-reload--after-compile))
+  (:on-unload
+   (remove-hook 'sly-compilation-finished-hook #'slynk-hot-reload--after-compile)))
 
 (provide 'slynk-hot-reload)
 ;;; slynk-hot-reload.el ends here
