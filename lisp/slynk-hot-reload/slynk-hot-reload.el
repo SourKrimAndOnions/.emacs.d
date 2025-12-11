@@ -26,8 +26,8 @@
 ;;   ;; - Call (slynk-hot-reload:setup :acceptor *acceptor*) when starting server
 ;;   ;; - Include (:script (:raw (slynk-hot-reload:script))) in HTML templates
 ;;
-;; The Common Lisp backend is automatically loaded from the bundled slynk/
-;; subdirectory during Sly connection, before the REPL is available.
+;; The Common Lisp backend (slynk-hot-reload.lisp) is automatically loaded
+;; during Sly connection initialization, before the REPL is available.
 
 ;;; Code:
 
@@ -63,7 +63,7 @@ LOADP is t if the code was loaded."
   "Automatic browser hot reload after compilation."
   (:authors "Your Name")
   (:license "MIT")
-  (:slynk-dependencies slynk/hot-reload)
+  (:slynk-dependencies slynk-hot-reload)
   (:on-load
    (add-hook 'sly-compilation-finished-hook #'slynk-hot-reload--after-compile))
   (:on-unload

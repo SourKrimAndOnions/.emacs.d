@@ -143,6 +143,8 @@ bootstrapping elpaca
     (repeat-mode 1)
     (setf bookmark-save-flag nil)
     (setq revert-without-query '(".*bookmark.*"))
+    (when (file-exists-p custom-file)
+      (load custom-file)) ;; load dir-local choices on startup
     (setopt
      ;; https://www.reddit.com/r/emacs/comments/kgv4fj/problems_in_org_trello_error_requestcurlsync/
      request-backend 'url-retrieve
@@ -616,7 +618,7 @@ navigation etc. available since you're in your editor.
 
   (use-package sly
     :ensure t
-    :config (setf inferior-lisp-program "/usr/local/bin/sbcl --dynamic-space-size 4096"))
+    :config (setf inferior-lisp-program "/usr/bin/sbcl"))
 
   (use-package sharper
     :bind (("C-c d" . #'sharper-main-transient)))
@@ -1198,7 +1200,6 @@ shared namespaces of emacs
     (monet-mode 1)
     (claude-code-mode)
     (setq claude-code-enable-notifications t)
-    (setq claude-code-terminal-backend 'vterm)
     ;; Display Claude in a right sidebar (33% width)
     (add-to-list 'display-buffer-alist
                  '("^\\*claude"
