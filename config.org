@@ -171,9 +171,10 @@ bootstrapping elpaca
 
     ;; Thanks Steve Purcell
     (keymap-global-set "RET" 'newline-and-indent)
-
+    (setopt global-completion-preview-mode t)
     (delete-selection-mode 0) ; Actions on active region will delete
     (add-to-list 'write-file-functions 'delete-trailing-whitespace)
+    (setopt dired-dwim-target t)
     (add-hook 'elpaca-after-init-hook
               `(lambda ()
                  ;; Undo the file handler trick from early-init.el
@@ -387,17 +388,21 @@ I've got a folder of custom Emacs Lisp libraries which must be added to the load
   ;; Add my library path to load-path
   (push "~/.emacs.d/lisp" load-path)
   (push "~/.emacs.d/lisp/azure-devops" load-path)
+  (push "~/.emacs.d/lisp/azure" load-path)
 #+end_src
 
 #+RESULTS:
 
 ** Dashboard
 #+begin_src emacs-lisp
-  (use-package all-the-icons)
+
+  (use-package all-the-icons
+    :if (display-graphic-p))
+
   (use-package dashboard
+    :after all-the-icons
     :config
-    (setq dashboard-startup-banner 'logo)
-    (setq dashboard-set-heading-icons t))
+    (load "~/.emacs.d/lisp/dashboard-config.el"))
 #+end_src
 
 #+RESULTS:
@@ -492,6 +497,19 @@ navigation etc. available since you're in your editor.
           ("t" "Toggle Timemachine" git-timemachine-toggle)]])
 #+end_src
 
+** Azure CLI (azure.el)
+A Magit-inspired TUI for Azure CLI. Provides transient menus for
+common Azure operations and magit-section based buffers for browsing
+resources, subscriptions, and Application Insights.
+
+#+begin_src emacs-lisp
+  (use-package azure
+    :ensure nil
+    :after (transient magit-section)
+    :commands (azure-status azure-transient)
+    :bind (("C-c z" . azure-transient)))
+#+end_src
+
 ** Puni (structural editing - sexp / balanced expressions)
 #+begin_src emacs-lisp
   ;; Install and configure Puni
@@ -536,18 +554,49 @@ navigation etc. available since you're in your editor.
     :config
     (vertico-prescient-mode t))
 
-            ;;; Completion at point
+  ;;; Completion at point
+  ;; === In-Buffer Completion (Emacs 30) ===
 
-  (use-package corfu
-    :config
-    (setopt corfu-cycle t)
-    (setopt corfu-auto t)
-    (setopt corfu-separator ?\s)          ; ?\s is " "
-    (setopt tab-always-indent 'complete)
-    (setopt corfu-min-width 30)
-    (setopt completion-ignore-case t)
-    (keymap-set corfu-map "RET" nil) ; aborts after newline
-    (global-corfu-mode 1))
+  ;; Completion styles (affects both minibuffer and in-buffer)
+  (setq completion-styles '(basic substring initials flex))
+  (setq completion-ignore-case t)
+
+  ;; --- *Completions* buffer behavior for in-buffer completion ---
+  ;; Single column is easier to scan
+  (setq completions-format 'one-column)
+  ;; Sort by usage history
+  (setq completions-sort 'historical)
+  ;; Limit height so it doesn't take over
+  (setq completions-max-height 15)
+  ;; Show detailed annotations (kind, signature, etc.)
+  (setq completions-detailed t)
+  ;; Auto-update *Completions* as you type
+  (setq completion-auto-help 'visible)
+  ;; TAB behavior: first TAB completes common, second shows/selects completions
+  (setq completion-auto-select 'second-tab)
+  (with-eval-after-load 'cc-mode
+    (keymap-set c-mode-base-map "TAB" #'indent-for-tab-command))
+  (setq tab-always-indent 'complete)
+  ;; --- Navigate completions from the source buffer ---
+  (keymap-set global-map "TAB" #'completion-at-point)
+  (define-key completion-in-region-mode-map (kbd "C-n") #'minibuffer-next-completion)
+  (define-key completion-in-region-mode-map (kbd "C-p") #'minibuffer-previous-completion)
+  (define-key completion-in-region-mode-map (kbd "RET") #'minibuffer-choose-completion)
+
+  ;; --- Or use Corfu instead of *Completions* buffer ---
+  ;; If you want a popup at point (like company), consider corfu:
+  ;; (use-package corfu
+  ;;   :init (global-corfu-mode))
+  ;; (use-package corfu
+  ;;   :config
+  ;;   (setopt corfu-cycle t)
+  ;;   (setopt corfu-auto t)
+  ;;   (setopt corfu-separator ?\s)          ; ?\s is " "
+  ;;   (setopt tab-always-indent 'complete)
+  ;;   (setopt corfu-min-width 30)
+  ;;   (setopt completion-ignore-case t)
+  ;;   (keymap-set corfu-map "RET" nil) ; aborts after newline
+  ;;   (global-corfu-mode 1))
 
   (use-package cape
     :init
@@ -927,14 +976,30 @@ some configuration for debugging slides
 
 ** bicep-ts-mode
 #+begin_src emacs-lisp
+  ;; (use-package bicep-ts-mode
+  ;;   :config
+  ;;   (with-eval-after-load 'lsp-mode
+  ;;     (add-to-list 'lsp-language-id-configuration '(bicep-ts-mode . "bicep"))
+  ;;     (lsp-register-client
+  ;;      (make-lsp-client :new-connection (lsp-stdio-connection '("dotnet" "~/.dotnet/tools/bicep-langserver/Bicep.LangServer.dll"))
+  ;;                       :activation-fn (lsp-activate-on "bicep")
+  ;;                       :server-id 'bicep))))
+
   (use-package bicep-ts-mode
     :config
     (with-eval-after-load 'lsp-mode
-      (add-to-list 'lsp-language-id-configuration '(bicep-ts-mode . "bicep"))
-      (lsp-register-client
-       (make-lsp-client :new-connection (lsp-stdio-connection '("dotnet" "/usr/local/bin/bicep-langserver/Bicep.LangServer.dll"))
-                        :activation-fn (lsp-activate-on "bicep")
-                        :server-id 'bicep))))
+      (let ((dotnet8-path (string-trim (shell-command-to-string "mise where dotnet@8"))))
+        (add-to-list 'lsp-language-id-configuration '(bicep-ts-mode . "bicep"))
+        (lsp-register-client
+         (make-lsp-client
+          :new-connection (lsp-stdio-connection
+                           `("env"
+                             ,(concat "DOTNET_ROOT=" dotnet8-path)
+                             ,(concat "PATH=" dotnet8-path ":" (getenv "PATH"))
+                             "dotnet"
+                             ,(expand-file-name "~/.dotnet/tools/bicep-langserver/Bicep.LangServer.dll")))
+          :activation-fn (lsp-activate-on "bicep")
+          :server-id 'bicep)))))
 #+end_src
 
 ** Marginalia
@@ -1004,6 +1069,27 @@ integrate 1password with emacs auth sources
       (add-to-list 'auth-sources '1password t)
       (auth-source-forget-all-cached)))
 #+end_src
+
+** edraw
+crazy shit ngl
+
+#+begin_src emacs-lisp
+  (use-package edraw
+  :ensure (el-easydraw :host github
+                       :repo "misohena/el-easydraw"
+                       :files ("*.el" "msg")
+                       :main "edraw.el")
+  :mode ("\\.edraw\\.svg\\'" . edraw-mode)
+  :commands (edraw edraw-mode)
+  :init
+  (with-eval-after-load 'org
+    (require 'edraw-org)
+    (edraw-org-setup-default))
+  (with-eval-after-load "ox"
+    (require 'edraw-org)
+    (edraw-org-setup-exporter)))
+#+end_src
+
 
 ** custom lisp
 #+begin_src emacs-lisp
