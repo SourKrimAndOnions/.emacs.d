@@ -171,7 +171,7 @@ bootstrapping elpaca
 
     ;; Thanks Steve Purcell
     (keymap-global-set "RET" 'newline-and-indent)
-    (setopt global-completion-preview-mode t)
+    (global-completion-preview-mode 1)
     (delete-selection-mode 0) ; Actions on active region will delete
     (add-to-list 'write-file-functions 'delete-trailing-whitespace)
     (setopt dired-dwim-target t)
@@ -205,21 +205,22 @@ bootstrapping elpaca
                 (unless (server-running-p)
                   (server-start)))))
 
-    ;; Accumulate history of buffers automatically.  Saves mental effort enormously.
-    (use-package recentf
-      :ensure nil
-      :config
-      (recentf-load-list)
-      (recentf-mode 1)
-      (setq recentf-max-saved-items 200)
-      ;; Save recentf every five minutes
-      (run-at-time nil (* 5 60) #'recentf-save-list)
-      (add-hook 'kill-emacs-hook #'recentf-save-list))
+  ;; Accumulate history of buffers automatically.  Saves mental effort enormously.
+  (use-package recentf
+    :ensure nil
+    :config
+    (recentf-load-list)
+    (recentf-mode 1)
+    (setq recentf-max-saved-items 200)
+    ;; Save recentf every five minutes
+    (run-at-time nil (* 5 60) #'recentf-save-list)
+    (add-hook 'kill-emacs-hook #'recentf-save-list))
 
   ;; See yasnippet's config and snippet in
   ;; ~/.emacs.d/etc/yasnippet/emacs-lisp-mode/package
   (use-package autoinsert
     :ensure nil
+    :after yasnippet
     :config
     (setq auto-insert-query nil)
     (setq auto-insert-alist
@@ -375,11 +376,11 @@ bootstrapping elpaca
 
 ** eshell
 #+begin_src emacs-lisp
-  (use-package emacs
-    :ensure nil
-    :after eshell
-    :init
-    (add-to-list 'eshell-path-env-list "~/.local/bin/"))
+  ;; (use-package emacs
+  ;;   :ensure nil
+  ;;   :after eshell
+  ;;   :init
+  ;;   (add-to-list 'eshell-path-env-list "~/.local/bin/"))
 #+end_src
 * packages
 ** Load custom lisp
@@ -625,7 +626,6 @@ resources, subscriptions, and Application Insights.
     :bind ((:map lsp-mode-map
                  ("S-M-SPC" . #'lsp-signature-activate)))
     :config
-    (setq lsp-csharp-csharpls-use-local-tool t)
     (setq lsp-completion-provider :none) ; Use completion-at-point instead
 
     ;; Configure orderless to handle LSP completion properly
@@ -758,7 +758,7 @@ like perps-mode, perps.el and perspective.el but simpler and utilizing the built
     (tabspaces-mode 1)
     (with-eval-after-load 'consult
       ;; hide full buffer list (still available with "b" prefix)
-      (consult-customize consult--source-buffer :hidden t :default nil)
+      ;; (consult-customize consult--source-buffer :hidden t :default nil)
       ;; set consult-workspace buffer list
       (defvar consult--source-workspace
         (list :name     "Workspace Buffers"
@@ -1189,7 +1189,82 @@ shared namespaces of emacs
 #+begin_src emacs-lisp
   (use-package dap-mode
     :ensure t
-    :config (require 'dap-netcore))
+    :config (require 'dap-netcore)
+
+    (defun dap-netcore--test-name-at-point ()
+      "Get the test method name at point."
+      (or (when (fboundp 'lsp--get-document-symbols)
+            ;; Try LSP first if available
+            (ignore-errors (thing-at-point 'symbol t)))
+          (save-excursion
+            (when (re-search-backward "\\(?:public\\|private\\|protected\\|internal\\)\\s-*\\(?:async\\s-+\\)?\\(?:Task\\|void\\)\\s-+\\([A-Za-z_][A-Za-z0-9_]*\\)\\s-*(" nil t)
+              (match-string-no-properties 1)))))
+
+    (defun dap-netcore-debug-tests-filter-pid (process output)
+      "Custom filter to extract PID from the process output in real-time."
+      (message "Filter received: %s" output) ; Debug line
+      (let ((buffer (process-buffer process)))
+        (when (buffer-live-p buffer)
+          (with-current-buffer buffer
+            (let ((moving (= (point) (process-mark process))))
+              (save-excursion
+                (goto-char (process-mark process))
+                (insert output)
+                (set-marker (process-mark process) (point)))
+              (if moving (goto-char (process-mark process))))))
+        (when (buffer-live-p buffer)
+          (with-current-buffer buffer
+            (save-excursion
+              (goto-char (point-min))
+              (when (search-forward "Process Id: " nil t)
+                (let ((pid-string (buffer-substring (point) (line-end-position))))
+                  (dap-netcore-debug-attach (string-to-number pid-string))
+                  (set-process-filter process nil))))))))
+
+    (defun dap-netcore-test-run (attach-buffer &optional args-string)
+      "Run .NET tests process to obtain PID to attach for debugging."
+      (message "Running dotnet test with args: %s" args-string)  ; Add this debug line
+      (with-environment-variables (("VSTEST_HOST_DEBUG" "1"))
+        (start-process "dap-netcore-attach-process"
+                       attach-buffer
+                       "dotnet"
+                       "test"
+                       "--verbosity=Quiet"
+                       (concat "" args-string))))
+
+    (defun dap-netcore-test-run (attach-buffer &optional filter project-dir)
+      "Run .NET tests process to obtain PID to attach for debugging."
+      (message "Running dotnet test with filter: %s in %s" filter project-dir)
+      (let ((args (list "test" "--verbosity=Quiet")))
+        (when (and filter (not (string-empty-p filter)))
+          (setq args (append args (list (concat "--filter=" filter)))))
+        (when project-dir
+          (setq args (append args (list project-dir))))
+        (with-environment-variables (("VSTEST_HOST_DEBUG" "1"))
+          (apply #'start-process "dap-netcore-attach-process" attach-buffer "dotnet" args))))
+
+    (defun dap-netcore-debug-test ()
+      "Debug .NET tests with optional filter."
+      (interactive)
+      (let* ((project-dir (expand-file-name
+                           (or (dap-netcore--locate-dominating-file-wildcard
+                                default-directory "*.*proj")
+                               (lsp-workspace-root)
+                               default-directory)))
+             (default-filter (or (dap-netcore--test-name-at-point) ""))
+             (filter (read-string "Filter (empty for all): " default-filter))
+             (attach-buffer "*dap-netcore-attach*"))
+        (when (get-buffer attach-buffer)
+          (kill-buffer attach-buffer))
+        (let ((dotnet-process (dap-netcore-test-run attach-buffer filter project-dir)))
+          (when dotnet-process
+            (set-process-filter dotnet-process #'dap-netcore-debug-tests-filter-pid)
+            (set-process-sentinel
+             dotnet-process
+             (lambda (process event)
+               (when (string-match "exited\\|finished" event)
+                 (message "Process exited with status: %d" (process-exit-status process))
+                 (display-buffer attach-buffer)))))))))
 #+end_src
 
 #+RESULTS:
