@@ -1264,7 +1264,32 @@ shared namespaces of emacs
              (lambda (process event)
                (when (string-match "exited\\|finished" event)
                  (message "Process exited with status: %d" (process-exit-status process))
-                 (display-buffer attach-buffer)))))))))
+                 (display-buffer attach-buffer))))))))
+    (defun dap-netcore--populate-args (conf)
+      "Populate CONF with arguments to launch or attach netcoredbg."
+      (dap--put-if-absent conf :dap-server-path (list (dap-netcore--debugger-locate-or-install) "--interpreter=vscode"))
+      (pcase (plist-get conf :mode)
+        ("launch"
+         (dap--put-if-absent
+          conf
+          :program
+          (let ((project-dir (f-full
+                              (or
+                               (dap-netcore--locate-dominating-file-wildcard
+                                default-directory "*.*proj")
+                               (lsp-workspace-root)))))
+            (save-mark-and-excursion
+              (find-file (concat (f-slash project-dir) "*.*proj") t)
+              (let ((res (if (libxml-available-p)
+                             (libxml-parse-xml-region (point-min) (point-max))
+                           (xml-parse-region (point-min) (point-max)))))
+                (kill-buffer)
+                (f-join project-dir "bin" "Debug"
+                        (dom-text (dom-by-tag res 'TargetFramework))
+                        (dom-text (dom-by-tag res 'RuntimeIdentifier))
+                        (concat (car (-take-last 1 (f-split project-dir))) ".dll")))))))
+        ("attach"
+         (dap--put-if-absent conf :processId (string-to-number (read-string "Enter PID: " "2345")))))))
 #+end_src
 
 #+RESULTS:
