@@ -171,7 +171,7 @@ bootstrapping elpaca
 
     ;; Thanks Steve Purcell
     (keymap-global-set "RET" 'newline-and-indent)
-    (global-completion-preview-mode 1)
+    ;; (global-completion-preview-mode 1)
     (delete-selection-mode 0) ; Actions on active region will delete
     (add-to-list 'write-file-functions 'delete-trailing-whitespace)
     (setopt dired-dwim-target t)
@@ -555,49 +555,47 @@ resources, subscriptions, and Application Insights.
     :config
     (vertico-prescient-mode t))
 
-  ;;; Completion at point
-  ;; === In-Buffer Completion (Emacs 30) ===
+  ;; ;;; Completion at point
+  ;; ;; === In-Buffer Completion (Emacs 30) ===
 
-  ;; Completion styles (affects both minibuffer and in-buffer)
-  (setq completion-styles '(basic substring initials flex))
-  (setq completion-ignore-case t)
+  ;; ;; Completion styles (affects both minibuffer and in-buffer)
+  ;; (setq completion-styles '(basic substring initials flex))
+  ;; (setq completion-ignore-case t)
 
-  ;; --- *Completions* buffer behavior for in-buffer completion ---
-  ;; Single column is easier to scan
-  (setq completions-format 'one-column)
-  ;; Sort by usage history
-  (setq completions-sort 'historical)
-  ;; Limit height so it doesn't take over
-  (setq completions-max-height 15)
-  ;; Show detailed annotations (kind, signature, etc.)
-  (setq completions-detailed t)
-  ;; Auto-update *Completions* as you type
-  (setq completion-auto-help 'visible)
-  ;; TAB behavior: first TAB completes common, second shows/selects completions
-  (setq completion-auto-select 'second-tab)
-  (with-eval-after-load 'cc-mode
-    (keymap-set c-mode-base-map "TAB" #'indent-for-tab-command))
-  (setq tab-always-indent 'complete)
-  ;; --- Navigate completions from the source buffer ---
-  (keymap-set global-map "TAB" #'completion-at-point)
-  (define-key completion-in-region-mode-map (kbd "C-n") #'minibuffer-next-completion)
-  (define-key completion-in-region-mode-map (kbd "C-p") #'minibuffer-previous-completion)
-  (define-key completion-in-region-mode-map (kbd "RET") #'minibuffer-choose-completion)
+  ;; ;; --- *Completions* buffer behavior for in-buffer completion ---
+  ;; ;; Single column is easier to scan
+  ;; (setq completions-format 'one-column)
+  ;; ;; Sort by usage history
+  ;; (setq completions-sort 'historical)
+  ;; ;; Limit height so it doesn't take over
+  ;; (setq completions-max-height 15)
+  ;; ;; Show detailed annotations (kind, signature, etc.)
+  ;; (setq completions-detailed t)
+  ;; ;; Auto-update *Completions* as you type
+  ;; (setq completion-auto-help 'visible)
+  ;; ;; TAB behavior: first TAB completes common, second shows/selects completions
+  ;; (setq completion-auto-select 'second-tab)
+  ;; (with-eval-after-load 'cc-mode
+  ;;   (keymap-set c-mode-base-map "TAB" #'indent-for-tab-command))
+  ;; (setq tab-always-indent 'complete)
+  ;; ;; --- Navigate completions from the source buffer ---
+  ;; (keymap-set global-map "TAB" #'completion-at-point)
+  ;; (define-key completion-in-region-mode-map (kbd "C-n") #'minibuffer-next-completion)
+  ;; (define-key completion-in-region-mode-map (kbd "C-p") #'minibuffer-previous-completion)
+  ;; (define-key completion-in-region-mode-map (kbd "RET") #'minibuffer-choose-completion)
 
   ;; --- Or use Corfu instead of *Completions* buffer ---
   ;; If you want a popup at point (like company), consider corfu:
-  ;; (use-package corfu
-  ;;   :init (global-corfu-mode))
-  ;; (use-package corfu
-  ;;   :config
-  ;;   (setopt corfu-cycle t)
-  ;;   (setopt corfu-auto t)
-  ;;   (setopt corfu-separator ?\s)          ; ?\s is " "
-  ;;   (setopt tab-always-indent 'complete)
-  ;;   (setopt corfu-min-width 30)
-  ;;   (setopt completion-ignore-case t)
-  ;;   (keymap-set corfu-map "RET" nil) ; aborts after newline
-  ;;   (global-corfu-mode 1))
+  (use-package corfu
+    :config
+    (setopt corfu-cycle t)
+    (setopt corfu-auto t)
+    (setopt corfu-separator ?\s)          ; ?\s is " "
+    (setopt tab-always-indent 'complete)
+    (setopt corfu-min-width 30)
+    (setopt completion-ignore-case t)
+    (keymap-set corfu-map "RET" nil) ; aborts after newline
+    (global-corfu-mode 1))
 
   (use-package cape
     :init
