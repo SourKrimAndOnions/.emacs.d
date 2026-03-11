@@ -984,20 +984,15 @@ some configuration for debugging slides
   ;;                       :server-id 'bicep))))
 
   (use-package bicep-ts-mode
-    :config
-    (with-eval-after-load 'lsp-mode
-      (let ((dotnet8-path (string-trim (shell-command-to-string "mise where dotnet@8"))))
-        (add-to-list 'lsp-language-id-configuration '(bicep-ts-mode . "bicep"))
-        (lsp-register-client
-         (make-lsp-client
-          :new-connection (lsp-stdio-connection
-                           `("env"
-                             ,(concat "DOTNET_ROOT=" dotnet8-path)
-                             ,(concat "PATH=" dotnet8-path ":" (getenv "PATH"))
-                             "dotnet"
-                             ,(expand-file-name "~/.dotnet/tools/bicep-langserver/Bicep.LangServer.dll")))
-          :activation-fn (lsp-activate-on "bicep")
-          :server-id 'bicep)))))
+  :config
+  (with-eval-after-load 'lsp-mode
+    (add-to-list 'lsp-language-id-configuration '(bicep-ts-mode . "bicep"))
+    (lsp-register-client
+     (make-lsp-client
+      :new-connection (lsp-stdio-connection
+                       '("dotnet" "/opt/bicep-langserver/Bicep.LangServer.dll"))
+      :activation-fn (lsp-activate-on "bicep")
+      :server-id 'bicep))))
 #+end_src
 
 ** Marginalia
