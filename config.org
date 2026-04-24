@@ -9,22 +9,22 @@ professional work
 bootstrapping elpaca
 #+begin_src emacs-lisp
   ;;bootstrap copied from instructions
-  (defvar elpaca-installer-version 0.11)
+  (defvar elpaca-installer-version 0.12)
   (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
   (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
-  (defvar elpaca-repos-directory (expand-file-name "repos/" elpaca-directory))
+  (defvar elpaca-sources-directory (expand-file-name "sources/" elpaca-directory))
   (defvar elpaca-order '(elpaca :repo "https://github.com/progfolio/elpaca.git"
-                                :ref nil :depth 1
+                                :ref nil :depth 1 :inherit ignore
                                 :files (:defaults "elpaca-test.el" (:exclude "extensions"))
-                                :build (:not elpaca--activate-package)))
-  (let* ((repo  (expand-file-name "elpaca/" elpaca-repos-directory))
+                                :build (:not elpaca-activate)))
+  (let* ((repo  (expand-file-name "elpaca/" elpaca-sources-directory))
          (build (expand-file-name "elpaca/" elpaca-builds-directory))
          (order (cdr elpaca-order))
          (default-directory repo))
     (add-to-list 'load-path (if (file-exists-p build) build repo))
     (unless (file-exists-p repo)
       (make-directory repo t)
-      (when (< emacs-major-version 28) (require 'subr-x))
+      (when (<= emacs-major-version 28) (require 'subr-x))
       (condition-case-unless-debug err
           (if-let* ((buffer (pop-to-buffer-same-window "*elpaca-bootstrap*"))
                     ((zerop (apply #'call-process `("git" nil ,buffer t "clone"
@@ -44,7 +44,7 @@ bootstrapping elpaca
     (unless (require 'elpaca-autoloads nil t)
       (require 'elpaca)
       (elpaca-generate-autoloads "elpaca" repo)
-      (load "./elpaca-autoloads")))
+      (let ((load-source-file-function nil)) (load "./elpaca-autoloads"))))
   (add-hook 'after-init-hook #'elpaca-process-queues)
   (elpaca `(,@elpaca-order))
 #+end_src
@@ -392,22 +392,6 @@ I've got a folder of custom Emacs Lisp libraries which must be added to the load
   (push "~/.emacs.d/lisp/azure" load-path)
 #+end_src
 
-#+RESULTS:
-
-** Dashboard
-#+begin_src emacs-lisp
-
-  (use-package all-the-icons
-    :if (display-graphic-p))
-
-  (use-package dashboard
-    :after all-the-icons
-    :config
-    (load "~/.emacs.d/lisp/dashboard-config.el"))
-#+end_src
-
-#+RESULTS:
-: t
 ** Keybinding Panel (which-key)
 
 [[https://github.com/justbur/emacs-which-key][which-key]] is great for getting an overview of what keybindings are available
@@ -586,6 +570,12 @@ resources, subscriptions, and Application Insights.
 
   ;; --- Or use Corfu instead of *Completions* buffer ---
   ;; If you want a popup at point (like company), consider corfu:
+  (defun my/corfu-minibuffer-p ()
+    "Enable Corfu in minibuffer, except in Vertico minibuffers."
+    (and (local-variable-p 'completion-at-point-functions)
+         (not (bound-and-true-p vertico--input))
+         (not (eq (current-local-map) read-passwd-map))))
+
   (use-package corfu
     :config
     (setopt corfu-cycle t)
@@ -594,7 +584,8 @@ resources, subscriptions, and Application Insights.
     (setopt tab-always-indent 'complete)
     (setopt corfu-min-width 30)
     (setopt completion-ignore-case t)
-    (keymap-set corfu-map "RET" nil) ; aborts after newline
+    (setopt global-corfu-minibuffer #'my/corfu-minibuffer-p)
+    (keymap-set corfu-map "RET" nil)      ; aborts after newline
     (global-corfu-mode 1))
 
   (use-package cape
@@ -1084,11 +1075,6 @@ crazy shit ngl
 #+end_src
 
 
-** custom lisp
-#+begin_src emacs-lisp
-  (require 'demo-gptel-config)
-#+end_src
-
 ** nameless
 helps with the inconvience in regards to reading function names of
 shared namespaces of emacs
@@ -1097,6 +1083,12 @@ shared namespaces of emacs
     (use-package nameless
       :config
       (add-hook 'emacs-lisp-mode-hook #'nameless-mode))
+#+end_src
+
+** hyperbole
+#+begin_src emacs-lisp
+    (use-package hyperbole
+      :config (hyperbole-mode t))
 #+end_src
 ** eww
 #+begin_src emacs-lisp
@@ -1284,10 +1276,6 @@ shared namespaces of emacs
         ("attach"
          (dap--put-if-absent conf :processId (string-to-number (read-string "Enter PID: " "2345")))))))
 #+end_src
-
-#+RESULTS:
-: [nil 26574 53033 353417 nil elpaca-process-queues nil nil 152000 nil]
-
 ** package ~development~
 #+begin_src emacs-lisp
       (use-package promise)
@@ -1297,107 +1285,6 @@ shared namespaces of emacs
         :ensure t
         :config (require 'trident-mode))
 #+end_src
-
-#+RESULTS:
-: [nil 26566 45103 187264 nil elpaca-process-queues nil nil 42000 nil]
-
-* Finans
-#+begin_src emacs-lisp
-  (use-package ledger-mode
-    :mode ("\\.dat\\'"
-           "\\.ledger\\'")
-    :custom (ledger-clear-whole-transactions t)
-    :config
-    (defvar ledger-file "/home/karim/Dropbox/ledger/ledger.dat"
-      "Path to your main Ledger file.")
-
-    (defun ledger-custom-report (name command)
-      "Run a custom Ledger report with NAME and COMMAND."
-      (let ((report-name (format "Custom: %s" name)))
-        (add-to-list 'ledger-reports `(,report-name ,command) t)
-        (ledger-report report-name nil)
-        (delete-other-windows)))
-
-    (transient-define-prefix ledger-reports-transient ()
-      "Transient for running Ledger reports."
-      :transient-suffix 'transient--do-stay
-      ["Ledger Reports"
-       ("n" "Net Worth" (lambda () (interactive)
-                          (ledger-custom-report "Net Worth" "%(binary) -f %(ledger-file) balance ^Assets ^Liabilities ^Equity and not %Equity:Budget -R")))
-       ("i" "Income Statement" (lambda () (interactive)
-                                 (ledger-custom-report "Income Statement" "%(binary) -f %(ledger-file) balance ^Income ^Expenses -R")))
-       ("r" "Retained Earnings" (lambda () (interactive)
-                                  (ledger-custom-report "Retained Earnings" "%(binary) -f %(ledger-file) balance ^Income ^Expenses -R --sum")))
-       ("b" "Budget Status" (lambda () (interactive)
-                              (ledger-custom-report "Budget Status" "%(binary) -f %(ledger-file) balance ^Budget")))
-       ("a" "All Accounts" (lambda () (interactive)
-                             (ledger-custom-report "All Accounts" "%(binary) -f %(ledger-file) balance ^Assets")))
-       ("e" "Expenses" (lambda () (interactive)
-                         (ledger-custom-report "Expenses" "%(binary) -f %(ledger-file) balance ^Expenses -R")))
-       ("m" "Monthly Expenses" (lambda () (interactive)
-                                 (ledger-custom-report "Monthly Expenses" "%(binary) -f %(ledger-file) --monthly balance ^Expenses -R")))])
-
-    (global-set-key (kbd "C-c l") #'ledger-reports-transient)
-
-    (ledger-reports-add "Cash Flow" "ledger -f %(ledger-file) -p %(month) register ^Assets:Checking")
-    (ledger-reports-add "Budget vs. Actual" "ledger -f %(ledger-file) -p %(month) --budget --depth 2 balance ^Expenses"))
-
-  (use-package flycheck-ledger :after ledger-mode)
-#+end_src
-
-#+RESULTS:
-: ledger-reports-transient
-
-
-*  Claude
-#+begin_src emacs-lisp
-  ;; Terminal backend
-  (use-package eat
-    :ensure (:wait t)
-    :defer t)
-
-  ;; WebSocket support
-  (use-package websocket
-    :ensure (:wait t))
-
-  (use-package monet
-    :ensure (:type git
-                   :host github
-                   :repo "stevemolitor/monet"
-                   :protocol ssh)
-    :defer t)
-
-  ;; Claude Code with SSH
-  (use-package claude-code
-    :ensure (:type git
-                   :host github
-                   :repo "stevemolitor/claude-code.el"
-                   :protocol ssh)
-    :commands (claude-code claude-code-mode)
-    :config
-    (add-hook 'claude-code-process-environment-functions #'monet-start-server-function)
-    (monet-mode 1)
-    (claude-code-mode)
-    (setq claude-code-enable-notifications t)
-    ;; Display Claude in a right sidebar (33% width)
-    (add-to-list 'display-buffer-alist
-                 '("^\\*claude"
-                   (display-buffer-in-side-window)
-                   (side . right)
-                   (window-width . 90)))
-    :bind-keymap ("C-c c" . claude-code-command-map)
-    :bind
-    (:repeat-map my-claude-code-map ("M" . claude-code-cycle-mode)))
-
-  ;;mcp
-
-  (use-package elisp-dev-mcp
-    :ensure t)
-#+end_src
-
-#+RESULTS:
-: [nil 26831 57330 214363 nil elpaca-process-queues nil nil 228000 nil]
-
 * org
 #+begin_src emacs-lisp
   (eval-after-load "org"
@@ -1425,20 +1312,6 @@ shared namespaces of emacs
     (add-hook 'org-cycle-hook #'org-cycle-hide-drawers)
 #+end_src
 
-#+RESULTS:
-: t
-
-* Wrap Up
-** Guix Emacs Profile
-
-*.config/guix/manifests/emacs.scm:*
-
-#+begin_src scheme :mkdirp yes :tangle ~/.config/guix/manifests/emacs.scm :noweb yes
-  (specifications->manifest
-   '("emacs"
-     <<packages>>
-     ))
-#+end_src
 ** custom elisp
 #+begin_src emacs-lisp :noweb yes
   (require 'compare-files)
