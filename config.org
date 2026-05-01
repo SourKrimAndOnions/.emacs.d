@@ -1087,9 +1087,50 @@ shared namespaces of emacs
 
 ** hyperbole
 #+begin_src emacs-lisp
-    (use-package hyperbole
-      :config (hyperbole-mode t))
+  (use-package hyperbole
+    :config (hyperbole-mode t))
+    (require 'hyperbole)
+
+  (defvar-local krv/doc-prefix-alist
+    '(("TC"  . "tests")
+      ("FT"  . "features")
+      ("ADR" . "adrs"))
+    "Map a doc prefix to a subdirectory under <repo-root>/docs/.
+  Buffer-local so each project can override via .dir-locals.el.")
+
+  (defun krv/repo-docs-root ()
+    "Return <repo-root>/docs/ for the current buffer, or nil."
+    (let ((root (or (locate-dominating-file
+                     (or buffer-file-name default-directory) ".git"))))
+      (when root (expand-file-name "docs/" root))))
+
+  (defib repo-doc-ref ()
+    "Jump to <repo-root>/docs/<subdir>/PREFIX-NNN-*.md when point is on PREFIX-NNN."
+    (save-excursion
+      (skip-chars-backward "A-Za-z0-9-")
+      (when (looking-at "\\([A-Z]\\{2,5\\}\\)-\\([0-9]+\\)")
+        (let* ((prefix (match-string 1))
+               (num    (match-string 2))
+               (subdir (cdr (assoc prefix krv/doc-prefix-alist)))
+               (root   (krv/repo-docs-root)))
+          (when (and subdir root)
+            (let* ((dir  (expand-file-name subdir root))
+                   (pad  (format "%03d" (string-to-number num)))
+                   (glob (format "%s-%s-*.md" prefix pad))
+                   (hits (file-expand-wildcards (expand-file-name glob dir))))
+              (ibut:label-set (match-string 0) (match-beginning 0) (match-end 0))
+              (cond
+               ((null hits)
+                (hact 'error "No %s doc matching %s-%s in %s" prefix prefix pad dir))
+               ((= 1 (length hits))
+                (hact 'link-to-file (car hits)))
+               (t
+                (hact 'link-to-file (completing-read "Doc: " hits nil t))))))))))
 #+end_src
+
+#+RESULTS:
+: ibtypes::repo-doc-ref
+
 ** eww
 #+begin_src emacs-lisp
   (use-package eww
