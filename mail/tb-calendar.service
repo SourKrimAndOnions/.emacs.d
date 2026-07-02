@@ -1,0 +1,12 @@
+[Unit]
+Description=Generate an org-agenda file from Thunderbird/Owl's calendar cache
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/tb-cal-watch.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

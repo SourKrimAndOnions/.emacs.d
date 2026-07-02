@@ -1,0 +1,13 @@
+[Unit]
+Description=Mirror Thunderbird/Owl mail into a notmuch Maildir index
+Documentation=man:notmuch(1)
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/tb-notmuch-watch.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

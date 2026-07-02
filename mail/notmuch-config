@@ -1,0 +1,17 @@
+[database]
+# relative path is resolved against $HOME -> ~/Mail (portable across machines)
+path=Mail
+
+[user]
+name=krv
+primary_email=krv@delegate.dk
+
+[new]
+tags=new
+ignore=.mbsyncstate;.uidvalidity;state.json
+
+[search]
+exclude_tags=deleted;spam
+
+[maildir]
+synchronize_flags=true

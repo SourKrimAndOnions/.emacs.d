@@ -1088,44 +1088,44 @@ shared namespaces of emacs
 ** hyperbole
 #+begin_src emacs-lisp
   (use-package hyperbole
-    :config (hyperbole-mode t))
-    (require 'hyperbole)
-
-  (defvar-local krv/doc-prefix-alist
-    '(("TC"  . "tests")
-      ("FT"  . "features")
-      ("ADR" . "adrs"))
-    "Map a doc prefix to a subdirectory under <repo-root>/docs/.
+    :config (hyperbole-mode t)
+    (defvar-local krv/doc-prefix-alist
+        '(("TC"  . "tests")
+          ("FT"  . "features")
+          ("ADR" . "adrs"))
+      "Map a doc prefix to a subdirectory under <repo-root>/docs/.
   Buffer-local so each project can override via .dir-locals.el.")
 
-  (defun krv/repo-docs-root ()
-    "Return <repo-root>/docs/ for the current buffer, or nil."
-    (let ((root (or (locate-dominating-file
-                     (or buffer-file-name default-directory) ".git"))))
-      (when root (expand-file-name "docs/" root))))
+    (defun krv/repo-docs-root ()
+      "Return <repo-root>/docs/ for the current buffer, or nil."
+      (let ((root (or (locate-dominating-file
+                       (or buffer-file-name default-directory) ".git"))))
+        (when root (expand-file-name "docs/" root))))
 
-  (defib repo-doc-ref ()
-    "Jump to <repo-root>/docs/<subdir>/PREFIX-NNN-*.md when point is on PREFIX-NNN."
-    (save-excursion
-      (skip-chars-backward "A-Za-z0-9-")
-      (when (looking-at "\\([A-Z]\\{2,5\\}\\)-\\([0-9]+\\)")
-        (let* ((prefix (match-string 1))
-               (num    (match-string 2))
-               (subdir (cdr (assoc prefix krv/doc-prefix-alist)))
-               (root   (krv/repo-docs-root)))
-          (when (and subdir root)
-            (let* ((dir  (expand-file-name subdir root))
-                   (pad  (format "%03d" (string-to-number num)))
-                   (glob (format "%s-%s-*.md" prefix pad))
-                   (hits (file-expand-wildcards (expand-file-name glob dir))))
-              (ibut:label-set (match-string 0) (match-beginning 0) (match-end 0))
-              (cond
-               ((null hits)
-                (hact 'error "No %s doc matching %s-%s in %s" prefix prefix pad dir))
-               ((= 1 (length hits))
-                (hact 'link-to-file (car hits)))
-               (t
-                (hact 'link-to-file (completing-read "Doc: " hits nil t))))))))))
+    (defib repo-doc-ref ()
+      "Jump to <repo-root>/docs/<subdir>/PREFIX-NNN-*.md when point is on PREFIX-NNN."
+      (save-excursion
+        (skip-chars-backward "A-Za-z0-9-")
+        (when (looking-at "\\([A-Z]\\{2,5\\}\\)-\\([0-9]+\\)")
+          (let* ((prefix (match-string 1))
+                 (num    (match-string 2))
+                 (subdir (cdr (assoc prefix krv/doc-prefix-alist)))
+                 (root   (krv/repo-docs-root)))
+            (when (and subdir root)
+              (let* ((dir  (expand-file-name subdir root))
+                     (pad  (format "%03d" (string-to-number num)))
+                     (glob (format "%s-%s-*.md" prefix pad))
+                     (hits (file-expand-wildcards (expand-file-name glob dir))))
+                (ibut:label-set (match-string 0) (match-beginning 0) (match-end 0))
+                (cond
+                 ((null hits)
+                  (hact 'error "No %s doc matching %s-%s in %s" prefix prefix pad dir))
+                 ((= 1 (length hits))
+                  (hact 'link-to-file (car hits)))
+                 (t
+                  (hact 'link-to-file (completing-read "Doc: " hits nil t)))))))))))
+
+
 #+end_src
 
 #+RESULTS:
@@ -1197,7 +1197,7 @@ shared namespaces of emacs
     :after (auth-source-1password promise emacsql)
     :config
     (auth-source-forget-all-cached)
-    (setf azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat")
+    (setopt azure-devops-org-pat (auth-source-pick-first-password :host "azure-work-item-pat")
           azure-devops-org-project "Clever"
           azure-devops-org-organization "cleveras"
           azure-devops-org-default-area-path "Clever\\App Development"
@@ -1335,7 +1335,10 @@ shared namespaces of emacs
     (setf org-pretty-entities t)
     (setf org-agenda-files '("~/Dropbox/org/azure-devops.org"
                              "~/Dropbox/org/inbox.org"
-                             "~/Dropbox/org/projects.org"))
+                             "~/Dropbox/org/projects.org"
+                             ;; Exchange calendar, generated from Thunderbird/Owl's
+                             ;; cache by ~/.local/bin/tb-cal-sync.py (tb-calendar.service)
+                             "~/.local/share/tb-calendar/exchange.org"))
     (setf org-directory '("~/Dropbox/org/"))
     (setq org-refile-targets '(("~/Dropbox/org/inbox.org" :maxlevel . 2)
                                ("~/Dropbox/org/notes.org" :maxlevel . 2)
@@ -1360,3 +1363,154 @@ shared namespaces of emacs
 
   <<az-devops>>
 #+end_src
+
+* ai
+** agent-shell
+# External dep: npm install -g @agentclientprotocol/claude-agent-acp
+#+begin_src emacs-lisp
+  (use-package agent-shell
+    :ensure t
+    :config
+    (setq agent-shell-anthropic-authentication
+          (agent-shell-anthropic-make-authentication :login t))
+    (setq agent-shell-anthropic-claude-environment
+          (agent-shell-make-environment-variables :inherit-env t))
+    (setq agent-shell-preferred-agent-config
+          (agent-shell-anthropic-make-claude-code-config)))
+#+end_src
+
+#+RESULTS:
+: [nil 27142 50244 157116 nil elpaca-process-queues nil nil 611000 nil]
+
+* mail
+Exchange mail is mirrored locally by Owl and kept in a notmuch index
+(=~/.local/bin/tb-mbox-sync.py= + the =tb-notmuch.service= user unit turn
+Thunderbird's mbox folders into a Maildir under =~/Mail= and re-index on
+every sync).
+** notmuch
+#+begin_src emacs-lisp
+  (use-package notmuch
+    :bind (("C-c m" . notmuch))
+    :config
+    (setq notmuch-show-logo nil
+          notmuch-search-oldest-first nil)
+    (setq notmuch-saved-searches
+          '((:name "inbox"  :query "folder:Indbakke"         :key "i")
+            (:name "unread" :query "tag:unread"              :key "u")
+            (:name "sent"   :query "folder:\"Sendt post\""   :key "s")
+            (:name "drafts" :query "folder:Kladder"          :key "d")
+            (:name "devops" :query "folder:DevOps"           :key "v")
+            (:name "trash"  :query "folder:\"Slettet post\"" :key "t")
+            (:name "all"    :query "*"                       :key "a"))))
+#+end_src
+** consult-notmuch
+#+begin_src emacs-lisp
+  (use-package consult-notmuch
+    :after (consult notmuch)
+    :bind (("C-c M" . consult-notmuch)))
+#+end_src
+** compose via Thunderbird/Owl
+Emacs has no SMTP path to Exchange (Owl speaks EWS only), so composing hands
+the message to Thunderbird's compose window, which sends it through Owl. The
+sent copy lands in Exchange's Sent folder and reappears in notmuch after the
+next Owl sync. Reads the *unencoded* buffer so =æøå= survive.
+#+begin_src emacs-lisp
+  (defun krv/tb-compose-quote (val)
+    "Quote VAL for Thunderbird's -compose field parser.
+  Each field value is wrapped in single quotes (so commas are literal);
+  embedded single quotes become ’ since the parser offers no escape."
+    (concat "'" (replace-regexp-in-string "'" "’" (or val "")) "'"))
+
+  (defun krv/message-compose-in-thunderbird ()
+    "Hand the message being composed to Thunderbird, which sends it via Owl."
+    (interactive)
+    (require 'message)
+    (let* ((to      (message-field-value "To"))
+           (cc      (message-field-value "Cc"))
+           (bcc     (message-field-value "Bcc"))
+           (subject (message-field-value "Subject"))
+           (body    (save-excursion
+                      (message-goto-body)
+                      (buffer-substring-no-properties (point) (point-max))))
+           (fields  (delq nil
+                          (list (and (org-string-nw-p to)      (concat "to="      (krv/tb-compose-quote to)))
+                                (and (org-string-nw-p cc)       (concat "cc="      (krv/tb-compose-quote cc)))
+                                (and (org-string-nw-p bcc)      (concat "bcc="     (krv/tb-compose-quote bcc)))
+                                (and (org-string-nw-p subject)  (concat "subject=" (krv/tb-compose-quote subject)))
+                                (concat "body=" (krv/tb-compose-quote body))))))
+      (unless (org-string-nw-p to)
+        (user-error "No To: recipient"))
+      (start-process "thunderbird-compose" nil "thunderbird"
+                     "-compose" (mapconcat #'identity fields ","))
+      (message "Handed off to Thunderbird — review and hit Send there.")
+      (bury-buffer)))
+
+  ;; In message buffers, C-c C-c hands off to Thunderbird instead of SMTP.
+  (with-eval-after-load 'message
+    (define-key message-mode-map (kbd "C-c C-c") #'krv/message-compose-in-thunderbird))
+
+  ;; Guard: if some code path still attempts a normal send, say why it won't work.
+  (setq message-send-mail-function
+        (lambda (&rest _)
+          (user-error "This setup sends via Thunderbird/Owl — use C-c C-c")))
+#+end_src
+** setup & portability (read this on a new machine)
+The mail + calendar pipeline is source-controlled here in this repo under
+=~/.emacs.d/mail/=. Nothing hardcodes a username or profile: the scripts
+auto-detect the Thunderbird profile from =profiles.ini= (override with
+=TB_PROFILE=), notmuch uses a relative =database.path= (=> =~/Mail=), and the
+systemd units use =%h=. So the same files work on every machine.
+
+*** How it fits together
+#+begin_example
+Owl (Thunderbird)  ── mbox folders + calendar-data/cache.sqlite (auto-synced)
+      │  (read-only)
+      ├─ tb-mbox-sync.py  → ~/Mail (Maildir)      → notmuch  → M-x notmuch
+      └─ tb-cal-sync.py   → ~/.local/share/tb-calendar/exchange.org → org-agenda
+             ▲                                             (in org-agenda-files)
+   inotify watchers, run by two systemd --user services
+#+end_example
+
+Repo contents (=~/.emacs.d/mail/=):
+- =tb-mbox-sync.py= — mbox → Maildir mirror (read-only, dedupes, carries read state)
+- =tb-cal-sync.py= — calendar cache → this org file (repeaters for recurring events)
+- =tb-notmuch-watch.sh= / =tb-cal-watch.sh= — inotify watchers (re-sync on change)
+- =tb-notmuch.service= / =tb-calendar.service= — systemd user units
+- =notmuch-config= — template copied to =~/.notmuch-config=
+- =install.sh= — symlinks scripts into =~/.local/bin=, installs units, enables them
+
+*** Prerequisites (Arch)
+#+begin_src sh :tangle no
+  sudo pacman -S --needed notmuch inotify-tools thunderbird python
+  # Then in Thunderbird: install the Owl for Exchange add-on, add the Exchange
+  # account, and let it sync so it populates webaccountMail/ and cache.sqlite.
+#+end_src
+
+*** One-time setup on a new machine
+1. Clone this repo to =~/.emacs.d= and start Emacs so elpaca installs
+   =notmuch= and =consult-notmuch=.
+2. Install prerequisites and set up Owl (above).
+3. Deploy the pipeline:
+   #+begin_src sh :tangle no
+     ~/.emacs.d/mail/install.sh
+   #+end_src
+4. Confirm: =systemctl --user status tb-notmuch.service tb-calendar.service=,
+   then =M-x notmuch= and =M-x org-agenda=.
+
+If you run Thunderbird only while logged in (the default), the services are
+fine as-is. To keep them running across logout, =loginctl enable-linger $USER=.
+
+*** Updating
+After =git pull=, the =~/.local/bin= symlinks already point at the new script
+code; re-run =~/.emacs.d/mail/install.sh= to bounce the services (and pick up
+any changed =.service= files). Editing a script in =~/.emacs.d/mail/= updates
+the running setup after the next service restart.
+
+*** Notes / limits (by design)
+- Freshness follows Thunderbird: Owl is what fetches from Exchange, so Emacs is
+  current whenever Thunderbird is running and syncing.
+- The Maildir mirror is *append-only* — it never deletes, so mail stays locally
+  even if removed server-side (a durable archive). Delete =~/Mail= +
+  =~/.local/share/tb-notmuch/state.json= and re-run to rebuild from scratch.
+- Calendar recurrence is approximated for complex rules (tagged =:complex:=);
+  compose replies don't thread server-side (=thunderbird -compose= limitation).
